@@ -4,9 +4,9 @@ window.D = {
   DAYS: 30,
   MAX: 100,
   START: { soji: 20, naka: 20, mori: 0, money: 30000, hp: 80 },
-  H: 65, HH: 75, L: 40,          // 高い・一番上・低いの線
+  H: 60, HH: 75, L: 40,          // 高い・一番上・低いの線
   // 遅れて効く努力: その日にためる量。節目（丸の数）でまとめて効く
-  PEND: { run: 3.2, sleep: 0.6, study: 3.4 },
+  PEND: { run: 2.9, cook: 2.2, sleep: 0.6, study: 3.8, work: 1.3 },
   MILES: [5, 10, 20, 30], MULT: [1.4, 1.7, 2, 2],
   SLIP: 0.85,      // 1〜2日休むと、ためた分がこれだけ残る
   END_MULT: 0.6,   // 30日目に節目に届かなかった分
@@ -14,34 +14,41 @@ window.D = {
   FAST: { gain: 10, limit: 5, loss: 6, hospLoss: 12 },   // 断食: 1日で見た目+10。5日目に倒れる。リバウンドで前より下がる
   DECAY: 0.45, SALON_KEEP: 18,   // 盛りは寝ると落ちる。サロンの後の4日はある程度もつ
   DATES: [10, 20], DATE_GAP: 20, DATE_GOOD: 50,
-  JIBUN_MONEY: 60000,
-  // 行動は6つ（2026-11-23 本人「選択肢多すぎる」「推し活はたまに起こるイベントにして」）。上の段がしんどい方、下の段がすぐ効く方
+  JIBUN_MONEY: 35000,
+  // 行動は9つ（2026-11-24 本人「選択肢減りすぎ。美容は無しにして、メイクとスキンケアに分けて」）。上の段がしんどい方、下の段がすぐ効く方
   ACT: {
-    run:    { ja: '運動と自炊', en: 'Run & cook', slow: 1, snd: 'run' },
-    study:  { ja: '勉強と仕事', en: 'Study & work', slow: 1, snd: 'study' },
+    run:    { ja: '運動', en: 'Run', slow: 1, snd: 'run' },
+    cook:   { ja: '自炊', en: 'Cook', slow: 1, snd: 'cook' },
+    study:  { ja: '勉強', en: 'Study', slow: 1, snd: 'study' },
+    work:   { ja: '仕事', en: 'Work', slow: 1, snd: 'work' },
     sleep:  { ja: '早寝', en: 'Early bed', slow: 1, snd: 'sleep' },
-    beauty: { ja: '美容', en: 'Beauty', money: -2500, snd: 'beauty' },
+    makeup: { ja: 'メイク', en: 'Makeup', snd: 'makeup' },
+    skin:   { ja: 'スキンケア', en: 'Skincare', money: -3000, snd: 'skin' },
     selfie: { ja: '加工自撮り', en: 'Filter selfie', snd: 'selfie' },
     fast:   { ja: '断食', en: 'Fasting', snd: 'fast' },
   },
   // 物の札の小さい字（効き目のヒント）
   SUB: {
-    run: { ja: '体力-20', en: 'Energy-20' }, study: { ja: '+5,000円', en: '+¥5,000' }, sleep: { ja: '体力+45', en: 'Energy+45' },
-    selfie: { ja: 'いいね+', en: 'Likes+' }, fast: { ja: 'すぐ細く', en: 'Slim fast' },
+    run: { ja: '体力-25', en: 'Energy-25' }, cook: { ja: '+1,500円', en: '+¥1,500' }, study: { ja: '体力-15', en: 'Energy-15' }, work: { ja: '+8,000円', en: '+¥8,000' }, sleep: { ja: '体力+45', en: 'Energy+45' },
+    makeup: { ja: '盛り+', en: 'Glam+' }, selfie: { ja: 'いいね+', en: 'Likes+' }, fast: { ja: 'すぐ細く', en: 'Slim fast' },
   },
   // その日のひとこと。遅れて効く方は「何も変わらない……」
   LINES: {
-    run: { ja: ['5km走った。何も変わらない……', '野菜を切った。何も変わらない……', 'お弁当を作った。何も変わらない……'], en: ['Ran 5k. Nothing changed...', 'Chopped veggies. Nothing changed...', 'Packed a lunch. Nothing changed...'] },
-    study: { ja: ['3ページで寝かけた。何も変わらない……', '資料を3枚作った。何も変わらない……', '先輩に褒められた。何も変わらない……'], en: ['Nearly slept at page 3. Nothing changed...', 'Made 3 slides. Nothing changed...', 'My senior praised me. Nothing changed...'] },
+    run: { ja: ['走った。何も変わらない……', '5km走った。何も変わらない……', '足が重い。何も変わらない……'], en: ['Ran. Nothing changed...', 'Ran 5k. Nothing changed...', 'Heavy legs. Nothing changed...'] },
+    cook: { ja: ['野菜を切った。何も変わらない……', 'お弁当を作った。何も変わらない……', '味噌汁がしみる。何も変わらない……'], en: ['Chopped veggies. Nothing changed...', 'Packed a lunch. Nothing changed...', 'Miso soup hit home. Nothing changed...'] },
+    study: { ja: ['3ページで寝かけた。何も変わらない……', '単語を20個。何も変わらない……', '問題集を1章。何も変わらない……'], en: ['Nearly slept at page 3. Nothing changed...', '20 new words. Nothing changed...', 'One chapter done. Nothing changed...'] },
+    work: { ja: ['残業した。何も変わらない……', '資料を3枚作った。何も変わらない……', '先輩に褒められた。何も変わらない……'], en: ['Overtime. Nothing changed...', 'Made 3 slides. Nothing changed...', 'My senior praised me. Nothing changed...'] },
     sleep: { ja: ['22時に寝た。何も変わらない……', 'スマホを置いて寝た。何も変わらない……', 'よく寝た。何も変わらない……'], en: ['In bed by 10. Nothing changed...', 'Phone down, lights out. Nothing changed...', 'Slept well. Nothing changed...'] },
-    beauty: { ja: ['アイラインが決まった', 'まつ毛が3倍になった', '高い美容液を開けた'], en: ['Nailed the eyeliner', 'Lashes tripled', 'Opened the pricey serum'] },
+    makeup: { ja: ['アイラインが決まった', 'まつ毛が上がった', '今日の顔、天才かも'], en: ['Nailed the eyeliner', 'Lashes curled up', "Today's face is genius"] },
+    skin: { ja: ['化粧水を5回たたいた', '高い美容液を開けた', '肌がもちっとした気がする'], en: ['Patted toner 5 times', 'Opened the pricey serum', 'Skin feels bouncy, I think'] },
     selfie: { ja: ['いいねが止まらない', '加工で目が2倍になった', '「誰？」とコメントが来た'], en: ["Likes won't stop", 'The filter doubled my eyes', 'Someone commented "Who?"'] },
     fast: { ja: ['今日は水だけ', 'おなかが鳴っている', '冷蔵庫を見ないようにした'], en: ['Only water today', 'My stomach is growling', 'Avoided looking at the fridge'] },
   },
   // 今日のおすすめ（日めくりの赤字）。対象が半額・2倍
   DEALS: [
-    { act: 'beauty', ja: 'サロン半額', en: 'Salon half off' },
-    { act: 'study', ja: '時給2倍', en: 'Double wage' },
+    { act: 'skin', ja: 'コスメ半額', en: 'Skincare half off' },
+    { act: 'work', ja: '時給2倍', en: 'Double wage' },
+    { act: 'cook', ja: 'スーパー特売', en: 'Grocery sale' },
   ],
   // できごとの出やすさ（猫とおばあちゃんは別）
   POOL: [['lotto', 2], ['parents', 2], ['cold', 1], ['cafe', 3], ['ramen', 2.5], ['supp', 1.5], ['sale', 2], ['ex', 1.5]],
@@ -77,19 +84,20 @@ window.D = {
   P: [
     { id: 'kujo', tier: 5, name: { ja: '九条さん', en: 'Kujo' }, tag: { ja: 'ハイスペすぎる人', en: 'Absurdly Perfect' }, say: { ja: 'ケーキ、焼いてきました', en: 'I baked you a cake' }, epi: { ja: '医師で弁護士でパティシエ。結婚式の司会は、彼が保護した犬だった。', en: 'Doctor, lawyer, pastry chef. The wedding MC was a dog he rescued.' }, hint: { ja: 'しんどい方をずっと続けて、会う日もうまくいく', en: 'Keep the hard stuff going and ace a date' } },
     { id: 'saeki', tier: 4, name: { ja: '佐伯さん', en: 'Saeki' }, tag: { ja: '誠実な会社員', en: 'Sincere Office Guy' }, say: { ja: '缶コーヒー、どっちがいい？', en: 'Which coffee do you want?' }, epi: { ja: '毎朝同じ時間に「いってきます」と言う人だった。30年、一度も遅れなかった。', en: 'Said "see you tonight" at the same time every morning. Never late in 30 years.' }, hint: { ja: '素地と中身の両方を高く', en: 'High base and high mind' } },
-    { id: 'riku', tier: 4, name: { ja: '陸さん', en: 'Riku' }, tag: { ja: '一緒に走って料理もする人', en: 'Runs and Cooks With You' }, say: { ja: '明日、朝6時に川で', en: 'Tomorrow, 6 a.m., by the river' }, epi: { ja: 'ふたりで走った距離は地球を半周した。帰ったら毎日、鍋だった。', en: 'Together they ran halfway around the planet, then made hot pot every night.' }, hint: { ja: '運動と自炊を続ける', en: 'Keep running and cooking' } },
+    { id: 'riku', tier: 4, name: { ja: '陸さん', en: 'Riku' }, tag: { ja: '一緒に走る人', en: 'Running Buddy' }, say: { ja: '明日、朝6時に川で', en: 'Tomorrow, 6 a.m., by the river' }, epi: { ja: 'ふたりで走った距離は、地球を半周した。', en: 'Together they ran halfway around the planet.' }, hint: { ja: '運動を続ける', en: 'Keep running' } },
     { id: 'tanaka', tier: 3, name: { ja: '田中くん', en: 'Tanaka' }, tag: { ja: 'ふつうにいい人', en: 'Just a Nice Guy' }, say: { ja: 'プリン、2個買ってきた', en: 'I bought two puddings' }, epi: { ja: '大きな事件は何もなかった。それがよかった。', en: 'Nothing dramatic ever happened. That was the best part.' }, hint: { ja: 'しんどい方をコツコツ', en: 'Chip away at the hard stuff' } },
+    { id: 'minato', tier: 4, name: { ja: '湊さん', en: 'Minato' }, tag: { ja: '料理を一緒にする人', en: 'Cooking Partner' }, say: { ja: '味見して。しょっぱい？', en: 'Taste this. Too salty?' }, epi: { ja: '冷蔵庫の残りだけで、50年ごはんを作り合った。', en: 'Fifty years of dinners made from fridge leftovers.' }, hint: { ja: '自炊を続ける', en: 'Keep cooking' } },
     { id: 'shikaku', tier: 3, name: { ja: '六角さん', en: 'Rokkaku' }, tag: { ja: '資格を48個持つ人', en: 'Owns 48 Certificates' }, say: { ja: '初デートは、検定の会場でどうかな', en: 'First date at an exam hall, maybe?' }, epi: { ja: 'ふたりで資格を取り続けた。結婚指輪の内側には、合格番号が彫ってある。', en: 'We kept collecting certificates. Our rings are engraved with our pass numbers.' }, hint: { ja: '勉強と仕事ばかり', en: 'Only study and work' } },
     { id: 'takeshi', tier: 2, name: { ja: 'タケシ', en: 'Takeshi' }, tag: { ja: 'ジャージの幼なじみ', en: 'Tracksuit Childhood Friend' }, say: { ja: 'アイス、半分いる？', en: 'Want half my popsicle?' }, epi: { ja: 'なんだかんだ、一番笑った50年だった。', en: 'Somehow, the funniest 50 years of my life.' }, hint: { ja: 'どれも中途半端', en: 'A bit of everything, not much of anything' } },
     { id: 'doctor', tier: 2, name: { ja: '先生', en: 'The Doctor' }, tag: { ja: '病院で会った人', en: 'Met at the Hospital' }, say: { ja: '3食、食べてくださいね', en: 'Please eat three meals a day' }, epi: { ja: '出会いは点滴だった。デートは毎回、健康診断になった。', en: 'We met over an IV drip. Every date became a checkup.' }, hint: { ja: '食べずに細くなろうとする', en: 'Try to slim down by not eating' }, secret: 1 },
-    { id: 'ren', tier: 2, name: { ja: 'レンくん', en: 'Ren' }, tag: { ja: '顔しか見ない人', en: 'Only Sees Faces' }, say: { ja: 'その顔、毎日その顔でいてね', en: 'Keep that exact face. Every day.' }, epi: { ja: 'すっぴんで会った日から、既読がつかなくなった。', en: 'The day I met him bare-faced, he stopped reading my texts.' }, hint: { ja: '美容をほどほど、素顔はそのまま', en: 'Some beauty, nothing underneath' } },
+    { id: 'ren', tier: 2, name: { ja: 'レンくん', en: 'Ren' }, tag: { ja: '顔しか見ない人', en: 'Only Sees Faces' }, say: { ja: 'その顔、毎日その顔でいてね', en: 'Keep that exact face. Every day.' }, epi: { ja: 'すっぴんで会った日から、既読がつかなくなった。', en: 'The day I met him bare-faced, he stopped reading my texts.' }, hint: { ja: 'メイクばかり', en: 'Makeup, makeup, makeup' } },
     { id: 'kakou', tier: 1, name: { ja: '画面の向こうの人', en: 'The Profile Pic' }, tag: { ja: '写真しか知らない人', en: 'Known Only by Photo' }, say: { ja: 'はじめまして（写真で）', en: 'Nice to meet you (in photos)' }, epi: { ja: '加工した写真どうしで3年やりとりした。まだ一度も会っていない。', en: 'Three years of trading filtered photos. Never met once.' }, hint: { ja: '加工した自撮りばかり', en: 'Filtered selfies only' } },
     { id: 'host', tier: 1, name: { ja: '煌くん', en: 'Kirari' }, tag: { ja: 'ホスト', en: 'The Host' }, say: { ja: '姫、今日もかわいいね', en: 'Princess, cute as always' }, epi: { ja: 'シャンパンタワーを3回建てた。貯金は1本も残らなかった。', en: 'Built three champagne towers. Not one yen left.' }, hint: { ja: '推しのお誘いに乗って、お金も使う', en: 'Say yes to your idol and spend' } },
     { id: 'oshi', tier: 1, name: { ja: '推し', en: 'My Idol' }, tag: { ja: '画面から出てこない人', en: 'Never Leaves the Screen' }, say: { ja: '……（ポスター）', en: '...(poster)' }, epi: { ja: '30日、ずっと見つめ合った。向こうは印刷だった。', en: 'We gazed at each other for 30 days. He was a print.' }, hint: { ja: '推しのお誘いには全部乗る', en: 'Say yes to every idol event' } },
-    { id: 'tomo', tier: 0, name: { ja: 'ユリカ', en: 'Yurika' }, tag: { ja: '整形をすすめてくる女友達', en: 'Friend With a Clinic Coupon' }, say: { ja: 'あんた、あと少しで完成じゃん', en: "Girl, you're SO close to done" }, epi: { ja: '紹介クーポンは、今も財布に入っている。使っていない。', en: 'The referral coupon is still in my wallet. Unused.' }, hint: { ja: '美容ばかり', en: 'Beauty, beauty, beauty' } },
+    { id: 'tomo', tier: 0, name: { ja: 'ユリカ', en: 'Yurika' }, tag: { ja: '整形をすすめてくる女友達', en: 'Friend With a Clinic Coupon' }, say: { ja: 'あんた、あと少しで完成じゃん', en: "Girl, you're SO close to done" }, epi: { ja: '紹介クーポンは、今も財布に入っている。使っていない。', en: 'The referral coupon is still in my wallet. Unused.' }, hint: { ja: 'メイクとスキンケアばかり', en: 'Only makeup and skincare' } },
     { id: 'kuma', tier: 0, name: { ja: 'くまお', en: 'Kumao' }, tag: { ja: 'ぬいぐるみ', en: 'Teddy Bear' }, say: { ja: '……', en: '...' }, epi: { ja: '30日寝ていた。夢の中では、モテた。', en: 'Slept 30 days. In dreams, I was popular.' }, hint: { ja: 'ずっと寝る', en: 'Just sleep' } },
     { id: 'sagi', tier: 0, name: { ja: '黒田さん', en: 'Mr. Kuroda' }, tag: { ja: '出会い系の詐欺の人', en: 'The Dating Scammer' }, say: { ja: 'いい投資のお話があってね', en: 'I have a great investment for you' }, epi: { ja: '「必ず増える」は、必ず増えなかった。', en: '"Guaranteed returns" were guaranteed not to return.' }, hint: { ja: 'お金に困る', en: 'Run out of money' }, secret: 1 },
-    { id: 'jibun', tier: 4, name: { ja: '自分', en: 'Myself' }, tag: { ja: '一番好きな人', en: 'My Favorite Person' }, say: { ja: '今の自分が、一番好き', en: 'I like who I am right now' }, epi: { ja: 'ドアの前には誰もいなかった。鏡の前には、一番好きな人がいた。', en: 'No one was at the door. The one I like most was in the mirror.' }, hint: { ja: 'しんどい方も美容も、どちらもほどほどに', en: 'Both the hard stuff and beauty, in balance' }, secret: 1 },
+    { id: 'jibun', tier: 4, name: { ja: '自分', en: 'Myself' }, tag: { ja: '一番好きな人', en: 'My Favorite Person' }, say: { ja: '今の自分が、一番好き', en: 'I like who I am right now' }, epi: { ja: 'ドアの前には誰もいなかった。鏡の前には、一番好きな人がいた。', en: 'No one was at the door. The one I like most was in the mirror.' }, hint: { ja: 'しんどい方もメイクも、どちらもほどほどに', en: 'Both the hard stuff and makeup, in balance' }, secret: 1 },
     { id: 'granny', tier: 4, name: { ja: 'トメさん', en: 'Granny Tome' }, tag: { ja: '隣のおばあちゃん', en: 'Granny Next Door' }, say: { ja: '孫はね、来られんかった', en: "My grandson couldn't come" }, epi: { ja: '毎日お茶をもらう。肌つやが良くなった。', en: 'Tea every day. My skin is glowing.' }, hint: { ja: 'ご近所にやさしく', en: 'Help the neighbors' }, secret: 1 },
     { id: 'cat', tier: 4, name: { ja: 'ミケ', en: 'Mike the Cat' }, tag: { ja: '猫', en: 'A Cat' }, say: { ja: 'にゃ', en: 'Mew' }, epi: { ja: '毎朝5時に起こされる。幸せだ。', en: 'Woken at 5 a.m. daily. Pure joy.' }, hint: { ja: '小さな命にやさしく', en: 'Be kind to a small life' }, secret: 1 },
   ],
@@ -98,6 +106,7 @@ window.D = {
     kujo: { ja: '保護犬の散歩の途中で寄りました', en: 'Dropping by while walking a rescue dog' },
     saeki: { ja: 'すみません、5分前に着いちゃって', en: 'Sorry, I got here five minutes early' },
     riku: { ja: 'はぁ、はぁ……走ってきた', en: 'Huff... huff... I ran here' },
+    minato: { ja: '鍋、火にかけっぱなしなんだけど', en: 'I left a pot on the stove, by the way' },
     tanaka: { ja: 'どうも、田中です', en: "Hi, it's Tanaka" },
     shikaku: { ja: '受験票、持った？', en: 'Got your admission ticket?' },
     takeshi: { ja: 'おーい、開けろー', en: 'Heyyy, open up' },
@@ -123,8 +132,8 @@ window.D = {
   },
   // 称号（一番多くやった行動）
   TITLES: {
-    run: { ja: '朝の川の常連', en: 'Riverside Regular' }, study: { ja: '仕事の鬼', en: 'Work Demon' }, sleep: { ja: '睡眠の天才', en: 'Sleep Prodigy' },
-    beauty: { ja: 'サロンの常連', en: 'Salon Regular' }, selfie: { ja: '加工の職人', en: 'Filter Master' }, fast: { ja: '水だけの人', en: 'Water-Only Person' },
+    run: { ja: '朝の川の常連', en: 'Riverside Regular' }, cook: { ja: '自炊の人', en: 'Home Cook' }, study: { ja: '図書館の主', en: 'Lord of the Library' }, work: { ja: '仕事の鬼', en: 'Work Demon' }, sleep: { ja: '睡眠の天才', en: 'Sleep Prodigy' },
+    makeup: { ja: 'メイクの人', en: 'Makeup Artist' }, skin: { ja: 'もちもち肌の人', en: 'Mochi Skin' }, selfie: { ja: '加工の職人', en: 'Filter Master' }, fast: { ja: '水だけの人', en: 'Water-Only Person' },
   },
   UI: {
     ja: {
@@ -138,7 +147,7 @@ window.D = {
       night: 'そして30日がたった', bell: 'ピンポーン', door: 'ドアの向こうに、誰かいる', who: 'ドアの前にいたのは', open: 'ドアを開ける', knock: 'コンコン',
       save: '画像を保存', post: 'Xでポスト', again: 'もう一回', toTitle: 'タイトルへ', next: 'つぎへ',
       invite: '結婚式のご案内', groom: 'あなた', and: 'と', unlocked: (a, b) => `${a} / ${b} 人`, locked: '？？？', hint: 'ヒント', 
-      howBody: ['毎日、部屋の物を1つタップして1日すごす。30日で自分を磨く。', '上の段はその日は何も変わらない。続けると、いつか突然まとめて効く。3日空くとやり直し。', '下の段はすぐ効く。でも寝ると落ちて、お金も減る。', '30日後、ドアの前に誰かが来る（全17人）。'],
+      howBody: ['毎日、部屋の物を1つタップして1日すごす。30日で自分を磨く。', '上の段はその日は何も変わらない。続けると、いつか突然まとめて効く。3日空くとやり直し。', '下の段はすぐ効く。でも寝ると落ちて、お金も減る。', '30日後、ドアの前に誰かが来る（全18人）。'],
       credits: '音: Kenney / rubberduck / StarNinjas / Almitory / Kerzoven / artisticdude / wubitog / eXpl0it3r / Saaabaaato / cori / Iwan Sounds / stephan（CC0・Public domain）',
       privacy: 'プライバシー', postText: (p, t) => `30日自分を磨いたら、ドアの前にいたのは「${p}」でした。称号: ${t} #自分磨き30日 #バカゲー`,
       share: '結果', load: '身じたく中',
@@ -156,7 +165,7 @@ window.D = {
       night: '30 days later', bell: 'Ding-dong', door: "Someone's behind the door", who: 'At your door is', open: 'Open the door', knock: 'Knock knock',
       save: 'Save image', post: 'Post on X', again: 'Again', toTitle: 'Title', next: 'Next',
       invite: 'Wedding Invitation', groom: 'You', and: '&', unlocked: (a, b) => `${a} / ${b}`, locked: '???', hint: 'Hint', 
-      howBody: ['Each day, tap one object in your room. Glow up in 30 days.', 'The top row changes nothing that day. Keep at it and one day it all pays off at once. Skip 3 days and it resets.', 'The bottom row works right away, but wears off overnight and costs money.', 'On day 30, someone comes to your door (17 in all).'],
+      howBody: ['Each day, tap one object in your room. Glow up in 30 days.', 'The top row changes nothing that day. Keep at it and one day it all pays off at once. Skip 3 days and it resets.', 'The bottom row works right away, but wears off overnight and costs money.', 'On day 30, someone comes to your door (18 in all).'],
       credits: 'Sounds: Kenney / rubberduck / StarNinjas / Almitory / Kerzoven / artisticdude / wubitog / eXpl0it3r / Saaabaaato / cori / Iwan Sounds / stephan (CC0 / Public domain)',
       privacy: 'Privacy', postText: (p, t) => `After a 30-day glow-up, "${p}" showed up at my door. Title: ${t} #30DayGlowUp`,
       share: 'Result', load: 'Getting ready',

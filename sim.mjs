@@ -34,10 +34,10 @@ if (import.meta.url === 'file://' + process.argv[1]) {
   for (let i = 0; i < 300; i++) { let r = i * 7 + 1; const pick = () => { r = (r * 1103515245 + 12345) & 0x7fffffff; return keys[r % keys.length] }; const { who } = run('x', 5000 + i, pick, () => (r & 1)); rnd[who] = (rnd[who] || 0) + 1 }
   console.log('random  ', JSON.stringify(rnd))
   // すぐ効く方だけ（楽な方を毎日ランダム）と、しんどい方だけ（ランダム）
-  const fastK = ['beauty', 'selfie'], slowK = ['run', 'sleep', 'study']
+  const fastK = ['makeup', 'skin', 'selfie'], slowK = ['run', 'cook', 'study', 'work', 'sleep']
   for (const [nm, ks] of [['fastOnly', fastK], ['slowOnly', slowK]]) {
     const c = {}; let so = 0, na = 0
-    for (let i = 0; i < 300; i++) { let r = i * 13 + 5; const pick = S => { r = (r * 1103515245 + 12345) & 0x7fffffff; let a = ks[r % ks.length]; if (S.hp < 25) a = 'sleep'; if (Sim.cost(D, S, a) + S.money < 0) a = nm === 'slowOnly' ? 'study' : 'selfie'; return a }; const { who, S } = run('x', 7000 + i, pick, () => 1); c[who] = (c[who] || 0) + 1; so += S.soji; na += S.naka }
+    for (let i = 0; i < 300; i++) { let r = i * 13 + 5; const pick = S => { r = (r * 1103515245 + 12345) & 0x7fffffff; let a = ks[r % ks.length]; if (S.hp < 25) a = 'sleep'; if (Sim.cost(D, S, a) + S.money < 0) a = nm === 'slowOnly' ? 'work' : 'makeup'; return a }; const { who, S } = run('x', 7000 + i, pick, () => 1); c[who] = (c[who] || 0) + 1; so += S.soji; na += S.naka }
     console.log(nm.padEnd(8), JSON.stringify(c), `平均 素地${(so / 300).toFixed(0)} 中身${(na / 300).toFixed(0)}`)
   }
   console.log(bad ? `NG ${bad}` : 'ALL 12/12')

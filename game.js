@@ -23,9 +23,9 @@
     step: ['snd/step1.mp3', 'snd/step2.mp3', 'snd/step3.mp3'], chop: 'snd/chop1.mp3', pot: 'snd/pot1.mp3', dish: 'snd/dish1.mp3',
   })
   const CUE = {
-    run: [['step', { vol: 0.8 }], ['step', { vol: 0.7, delay: 0.22 }], ['chop', { vol: 0.7, delay: 0.5 }], ['pot', { vol: 0.5, delay: 0.75 }]],
-    sleep: [['snore', { vol: 0.5 }]], study: [['book', { vol: 0.8 }], ['coin', { vol: 0.5, delay: 0.3 }]],
-    beauty: [['pop', { vol: 0.55 }], ['swish', { vol: 0.5, delay: 0.15 }], ['coin', { vol: 0.4, delay: 0.35 }]], selfie: [['tap', { vol: 0.6, rate: 1.4 }], ['pop', { vol: 0.5, rate: 1.3, delay: 0.2 }]],
+    run: [['step', { vol: 0.8 }], ['step', { vol: 0.7, delay: 0.22 }], ['step', { vol: 0.7, delay: 0.44 }]], cook: [['chop', { vol: 0.8 }], ['chop', { vol: 0.7, delay: 0.18 }], ['pot', { vol: 0.5, delay: 0.42 }]],
+    work: [['book', { vol: 0.6 }], ['coin', { vol: 0.6, delay: 0.25 }]], sleep: [['snore', { vol: 0.5 }]], study: [['book', { vol: 0.8 }]],
+    makeup: [['pop', { vol: 0.55 }], ['swish', { vol: 0.4, delay: 0.15 }]], skin: [['pop', { vol: 0.6 }], ['pop', { vol: 0.45, delay: 0.15 }]], selfie: [['tap', { vol: 0.6, rate: 1.4 }], ['pop', { vol: 0.5, rate: 1.3, delay: 0.2 }]],
     oshi: [['clink', { vol: 0.6 }], ['coin', { vol: 0.5, delay: 0.2 }]], fast: [['dish', { vol: 0.5, rate: 0.9 }]],
     mile: [['win2', { vol: 0.8 }], ['applause', { vol: 0.35, delay: 0.3 }]], reset: [['lose', { vol: 0.6 }]], date: [['bell', { vol: 0.5, jitter: 0 }]],
     tear: [['tear', { vol: 0.6 }]], ev: [['pop', { vol: 0.5, rate: 0.8 }]], meow: [['meow', { vol: 0.8 }]], bad: [['clank', { vol: 0.7, rate: 0.7 }], ['stamp', { vol: 0.6, delay: 0.1 }]],
@@ -57,7 +57,7 @@
     const mori = eve && S.moriEve != null ? S.moriEve : S.mori
     $('#gNaka').textContent = `${u.naka} ${S.naka}`; $('#gSoji').textContent = `${u.soji} ${S.soji + S.temp}`; $('#gMori').textContent = `${u.mori} ${mori}`
     $('#shelfImg').src = `img/shelf${stage(S.naka, [35, 55, 75])}.webp?${V}`
-    $('#dressImg').src = `img/dress${stage(S.n.beauty, [2, 5, 9])}.webp?${V}`
+    $('#dressImg').src = `img/dress${stage(S.n.makeup + S.n.skin, [3, 7, 12])}.webp?${V}`
     // 鏡の自分は値・病院・断食・疲れ・最近の過ごし方で15通り。変わった日は鏡が光って一言出る
     const me = Sim.mirror(D, S, eve)
     if (me !== curMe) {
@@ -124,7 +124,7 @@
     const u = U(), h = $('#hand'), tip = $('#tip')
     clearTimeout(tutTimer)
     if (tutStep >= 4 || store.get('jmg_tut') === '1') { h.hidden = true; tip.hidden = true; return }
-    const T = [[u.tut1, '#oRun'], [u.tut2, '#oStudy'], [u.tut3, '#oBeauty'], [u.tut4, '#cal']][tutStep]
+    const T = [[u.tut1, '#oRun'], [u.tut2, '#oStudy'], [u.tut3, '#oMakeup'], [u.tut4, '#cal']][tutStep]
     let t = T[0]; if (!touch) t = t.replace('タップ', 'クリック').replace('Tap', 'Click')
     tip.textContent = t; tip.hidden = false; if (!tutAt) tutAt = performance.now()
     const r = $(T[1]).getBoundingClientRect(); h.hidden = false; h.style.left = (r.left + r.width / 2 - 8) + 'px'; h.style.top = (r.top + r.height * 0.45) + 'px'
@@ -545,7 +545,7 @@
   }
 
   // ---- 読み込み（最初の画面に要る絵を数えてバーを進める）
-  const CORE = ['room', 'o_mirror', 'me0', 'o_wallet', 'shelf0', 'dress0', 'o_shoes', 'o_laptop', 'o_bed', 'o_nail', 'o_ring', 'o_scale']
+  const CORE = ['room', 'o_mirror', 'me0', 'o_wallet', 'shelf0', 'dress0', 'o_shoes', 'o_pan', 'o_laptop', 'o_bed', 'o_nail', 'o_skin', 'o_ring', 'o_scale', 'shelf2']
   let got = 0
   const hideLoad = () => { const l = $('#loading'); if (l.dataset.gone) return; l.dataset.gone = 1; l.style.opacity = 0; l.style.pointerEvents = 'none'; setTimeout(() => { l.hidden = true }, 360) }
   applyLang(); muteIcon()
