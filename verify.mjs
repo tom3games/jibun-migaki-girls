@@ -391,7 +391,7 @@ await t('鏡の自分が本物のタップの遊びで変わっていく（走�
 await t('鏡の絵15枚が全部読める・値どおりに出る', async () => {
   const z = await open(browser)
   await z.evaluate(() => { jmg.setSeed(9); jmg.fast(0.02) }); await z.click('#bStart')
-  const SET = { me0: {}, me_soji1: { soji: 45 }, me_soji2: { soji: 70 }, me_mori1: { mori: 35 }, me_mori2: { mori: 60 }, me_naka1: { naka: 50 }, me_naka2: { naka: 70, soji: 45 }, me_allhigh: { soji: 80, naka: 70 }, me_run: { log: ['run', 'cook', 'run', 'run'] }, me_cook: { log: ['cook', 'cook', 'cook'] }, me_tired: { hp: 5 }, me_fast: { temp: 20, fastRun: 2 }, me_hosp: { lastHosp: 1 }, me_oshi: { log: ['oshi', 'oshi'] }, me_selfie: { log: ['selfie', 'selfie'] } }
+  const SET = { me0: {}, me_soji1: { soji: 45 }, me_soji2: { soji: 70 }, me_mori1: { mori: 16 }, me_mori2: { mori: 45 }, me_naka1: { naka: 50 }, me_naka2: { naka: 70, soji: 45 }, me_allhigh: { soji: 80, naka: 70 }, me_run: { log: ['run', 'cook', 'run', 'run'] }, me_cook: { log: ['cook', 'cook', 'cook'] }, me_tired: { hp: 5 }, me_fast: { temp: 20, fastRun: 2 }, me_hosp: { lastHosp: 1 }, me_oshi: { log: ['oshi', 'oshi'] }, me_selfie: { log: ['selfie', 'selfie'] } }
   const bad = []
   for (const [nm, st] of Object.entries(SET)) {
     const got = await z.evaluate(st => { const S = jmg.raw(); Object.assign(S, { soji: 20, naka: 20, mori: 0, temp: 0, fastRun: 0, hp: 80, lastHosp: -99, log: [], day: 3 }, st); return Sim.mirror(D, S) }, st)

@@ -203,7 +203,8 @@
     const last = S.log.slice(-4), cnt = a => last.filter(x => x === a).length
     if (cnt('oshi') >= 2) return 'me_oshi'
     if (cnt('selfie') >= 2) return 'me_selfie'
-    if (mo >= 22 && mo > so) return mo >= 42 ? 'me_mori2' : 'me_mori1'
+    // メイクは1回目から鏡に出る（素地がずっと高い時は、素地の方が勝つ）
+    if (mo >= 14 && mo >= so - 10) return mo >= 40 ? 'me_mori2' : 'me_mori1'
     if (cnt('run') >= 2 && so < H) return 'me_run'
     if (cnt('cook') >= 3 && so < H) return 'me_cook'
     if (na >= H && so >= D.L) return 'me_naka2'
