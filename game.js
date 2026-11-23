@@ -23,10 +23,9 @@
     step: ['snd/step1.mp3', 'snd/step2.mp3', 'snd/step3.mp3'], chop: 'snd/chop1.mp3', pot: 'snd/pot1.mp3', dish: 'snd/dish1.mp3',
   })
   const CUE = {
-    run: [['step', { vol: 0.8 }], ['step', { vol: 0.7, delay: 0.22 }], ['step', { vol: 0.7, delay: 0.44 }]], cook: [['chop', { vol: 0.8 }], ['chop', { vol: 0.7, delay: 0.18 }], ['pot', { vol: 0.5, delay: 0.42 }]],
-    work: [['book', { vol: 0.6 }], ['coin', { vol: 0.6, delay: 0.25 }]], sleep: [['snore', { vol: 0.5 }]], study: [['book', { vol: 0.8 }]],
-    makeup: [['pop', { vol: 0.55 }], ['swish', { vol: 0.4, delay: 0.15 }]], skin: [['pop', { vol: 0.6 }], ['pop', { vol: 0.45, delay: 0.15 }]],
-    salon: [['swish', { vol: 0.7 }], ['swish', { vol: 0.6, delay: 0.14 }], ['coin', { vol: 0.5, delay: 0.3 }]], selfie: [['tap', { vol: 0.6, rate: 1.4 }], ['pop', { vol: 0.5, rate: 1.3, delay: 0.2 }]],
+    run: [['step', { vol: 0.8 }], ['step', { vol: 0.7, delay: 0.22 }], ['chop', { vol: 0.7, delay: 0.5 }], ['pot', { vol: 0.5, delay: 0.75 }]],
+    sleep: [['snore', { vol: 0.5 }]], study: [['book', { vol: 0.8 }], ['coin', { vol: 0.5, delay: 0.3 }]],
+    beauty: [['pop', { vol: 0.55 }], ['swish', { vol: 0.5, delay: 0.15 }], ['coin', { vol: 0.4, delay: 0.35 }]], selfie: [['tap', { vol: 0.6, rate: 1.4 }], ['pop', { vol: 0.5, rate: 1.3, delay: 0.2 }]],
     oshi: [['clink', { vol: 0.6 }], ['coin', { vol: 0.5, delay: 0.2 }]], fast: [['dish', { vol: 0.5, rate: 0.9 }]],
     mile: [['win2', { vol: 0.8 }], ['applause', { vol: 0.35, delay: 0.3 }]], reset: [['lose', { vol: 0.6 }]], date: [['bell', { vol: 0.5, jitter: 0 }]],
     tear: [['tear', { vol: 0.6 }]], ev: [['pop', { vol: 0.5, rate: 0.8 }]], meow: [['meow', { vol: 0.8 }]], bad: [['clank', { vol: 0.7, rate: 0.7 }], ['stamp', { vol: 0.6, delay: 0.1 }]],
@@ -43,8 +42,7 @@
   let S = null, busy = false, seedNext = null, tutStep = 0, curMe = null, eve = false   // eve: 行動のあと、日めくりをめくるまでは「その日の夜」（盛りはまだ落ちていない）
   const book = new Set((store.get('jmg_book') || '').split(',').filter(Boolean))
   const PMAP = Object.fromEntries(D.P.map(p => [p.id, p]))
-  const TIER = { S: 5, A: 4, B: 3, C: 2, D: 1, E: 0, EX: 4 }
-  const rankTag = r => `<span class="rk rk${r}">${r === 'EX' ? (lang === 'ja' ? '番外' : 'EX') : r}</span>`
+
 
   function show(id) { for (const v of $$('main.view')) v.hidden = v.id !== id }
 
@@ -59,7 +57,7 @@
     const mori = eve && S.moriEve != null ? S.moriEve : S.mori
     $('#gNaka').textContent = `${u.naka} ${S.naka}`; $('#gSoji').textContent = `${u.soji} ${S.soji + S.temp}`; $('#gMori').textContent = `${u.mori} ${mori}`
     $('#shelfImg').src = `img/shelf${stage(S.naka, [35, 55, 75])}.webp?${V}`
-    $('#dressImg').src = `img/dress${stage(S.n.makeup + S.n.skin + S.n.salon, [3, 7, 12])}.webp?${V}`
+    $('#dressImg').src = `img/dress${stage(S.n.beauty, [2, 5, 9])}.webp?${V}`
     // 鏡の自分は値・病院・断食・疲れ・最近の過ごし方で15通り。変わった日は鏡が光って一言出る
     const me = Sim.mirror(D, S, eve)
     if (me !== curMe) {
@@ -124,7 +122,7 @@
     const u = U(), h = $('#hand'), tip = $('#tip')
     clearTimeout(tutTimer)
     if (tutStep >= 4 || store.get('jmg_tut') === '1') { h.hidden = true; tip.hidden = true; return }
-    const T = [[u.tut1, '#oRun'], [u.tut2, '#habit'], [u.tut3, '#hpNote'], [u.tut4, '#cal']][tutStep]
+    const T = [[u.tut1, '#oRun'], [u.tut2, '#oStudy'], [u.tut3, '#oBeauty'], [u.tut4, '#cal']][tutStep]
     let t = T[0]; if (!touch) t = t.replace('タップ', 'クリック').replace('Tap', 'Click')
     tip.textContent = t; tip.hidden = false; if (!tutAt) tutAt = performance.now()
     const r = $(T[1]).getBoundingClientRect(); h.hidden = false; h.style.left = (r.left + r.width / 2 - 8) + 'px'; h.style.top = (r.top + r.height * 0.45) + 'px'
@@ -270,7 +268,7 @@
   async function reveal() {
     const who = Sim.judge(D, S), p = PMAP[who], run = ++rvRun
     S.who = who; S.ttl = Sim.title(D, S)
-    window.TM && TM.end(TIER[p.rank], TIER[p.rank] >= 3)
+    window.TM && TM.end(p.tier, p.tier >= 3)
     const isNew = !book.has(who); book.add(who); store.set('jmg_book', [...book].join(','))
     show('vReveal'); bed(false); for (const f of $$('.float')) f.remove(); $('#hand').hidden = true
     RV = { p: 0, ready: false, opened: false, anim: false, drag: false, peeked: false, creaked: false, knocks: 0, peeps: 0, peeping: false, lastAct: pnow(), isNew, txt: '' }
@@ -303,9 +301,9 @@
     const fl = $('#flash'); fl.style.transition = 'none'; fl.style.opacity = 0.9; requestAnimationFrame(() => { fl.style.transition = 'opacity .6s'; fl.style.opacity = 0 })
     rvSay('who')
     await pwait(900); if (run !== rvRun) return
-    const tr = TIER[p.rank]; Sfx(tr >= 4 ? 'win' : tr >= 2 ? 'mid' : 'lose'); Sfx('stamp')
+    const tr = p.tier; Sfx(tr >= 4 ? 'win' : tr >= 2 ? 'mid' : 'lose'); Sfx('stamp')
     const tag = $('#nameTag'), sayEl = $('#say')
-    tag.innerHTML = `${rankTag(p.rank)}${tx(p.name)}<small>${tx(p.tag)}${RV.isNew ? (lang === 'ja' ? '・はじめて' : ' / NEW') : ''}</small>`; tag.classList.add('in')
+    tag.innerHTML = `${tx(p.name)}<small>${tx(p.tag)}${RV.isNew ? (lang === 'ja' ? '・はじめて' : ' / NEW') : ''}</small>`; tag.classList.add('in')
     await pwait(700); if (run !== rvRun) return
     sayEl.textContent = tx(p.say); sayEl.classList.add('in')
     await pwait(900); if (run !== rvRun) return
@@ -377,19 +375,7 @@
     // 名前
     x.fillStyle = '#2a1d14'; x.font = `54px ${POP}`
     x.fillText(`${u.groom} ${u.and} ${tx(p.name)}`, W / 2, py + ph + 92)
-    x.fillStyle = '#d23a2a'; x.font = `34px ${HAND}`; x.fillText(`${u.rank(p.rank)}  ${tx(p.tag)}`, W / 2, py + ph + 140)
-    // ランクの札（写真の右上）
-    { const rx = px + pw + 4, ry = py + 34, rk = p.rank; x.save(); x.translate(rx, ry); x.rotate(0.12); x.fillStyle = D.RANKS[rk]; x.beginPath()
-      const poly = pts => { pts.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); x.closePath() }
-      if (rk === 'S') { for (let i = 0; i < 10; i++) { const r = i % 2 ? 34 : 78, t = -Math.PI / 2 + i * Math.PI / 5; i ? x.lineTo(Math.cos(t) * r, Math.sin(t) * r) : x.moveTo(Math.cos(t) * r, Math.sin(t) * r) } x.closePath() }
-      else if (rk === 'A') x.arc(0, 0, 58, 0, 7)
-      else if (rk === 'B') x.roundRect(-56, -56, 112, 112, 18)
-      else if (rk === 'C') poly([[0, -66], [66, 0], [0, 66], [-66, 0]])
-      else if (rk === 'D') poly([[-32, -58], [32, -58], [64, 0], [32, 58], [-32, 58], [-64, 0]])
-      else if (rk === 'E') x.rect(-52, -52, 104, 104)
-      else poly([[-90, -40], [90, -40], [74, 0], [90, 40], [-90, 40], [-74, 0]])
-      x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 4; if (rk === 'E') x.setLineDash([10, 8]); x.stroke(); x.setLineDash([])
-      x.fillStyle = rk === 'S' ? '#5a3b00' : '#fff'; x.font = `${rk === 'EX' ? 40 : rk === 'S' ? 52 : 60}px ${POP}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(rk === 'EX' ? (lang === 'ja' ? '番外' : 'EX') : rk, 0, rk === 'S' ? 8 : 4); x.restore(); x.textBaseline = 'alphabetic' }
+    x.fillStyle = '#d23a2a'; x.font = `34px ${HAND}`; x.fillText(`${tx(p.tag)}`, W / 2, py + ph + 140)
     // 3つの値
     const st = [[u.soji, S.soji], [u.naka, S.naka], [u.chain, S.maxChain]], y0 = py + ph + 190
     st.forEach(([k, v], i) => { const cx = W / 2 + (i - 1) * 250; x.fillStyle = '#7a6550'; x.font = `30px ${HAND}`; x.fillText(k, cx, y0); x.fillStyle = '#2a1d14'; x.font = `56px ${POP}`; x.fillText(v, cx, y0 + 60) })
@@ -407,7 +393,7 @@
   function openBook(sel) {
     const u = U(), g = $('#grid')
     $('#bookH').textContent = u.zukan; $('#bookN').textContent = u.unlocked(book.size, D.P.length); $('#bookClose').textContent = u.back
-    g.innerHTML = D.P.map(p => book.has(p.id) ? `<button class="cell" data-id="${p.id}"><img src="img/t_${p.id}.webp?${V}" alt=""><b>${tx(p.name)}</b>${rankTag(p.rank)}</button>` : `<button class="cell lock" data-id="${p.id}">?${rankTag(p.rank)}</button>`).join('')
+    g.innerHTML = D.P.map(p => book.has(p.id) ? `<button class="cell" data-id="${p.id}"><img src="img/t_${p.id}.webp?${V}" alt=""><b>${tx(p.name)}</b></button>` : `<button class="cell lock" data-id="${p.id}">?</button>`).join('')
     $('#bookInfo').textContent = book.size ? u.tapChat : ''
     $('#book').hidden = false
     if (sel) info(sel)
@@ -415,7 +401,7 @@
   function info(id) {
     const p = PMAP[id], u = U()
     for (const c of $$('.cell')) c.classList.toggle('sel', c.dataset.id === id)
-    $('#bookInfo').textContent = book.has(id) ? `${u.rank(p.rank)} ${tx(p.name)}（${tx(p.tag)}）${tx(p.epi)}` : `${u.rank(p.rank)} ${u.locked}  ${u.hint}: ${tx(p.hint)}`
+    $('#bookInfo').textContent = book.has(id) ? `${tx(p.name)}（${tx(p.tag)}）${tx(p.epi)}` : `${u.locked}  ${u.hint}: ${tx(p.hint)}`
   }
 
   // ---- トーク（架空のアプリ「こいぶみ」）
@@ -557,7 +543,7 @@
   }
 
   // ---- 読み込み（最初の画面に要る絵を数えてバーを進める）
-  const CORE = ['room', 'o_mirror', 'me0', 'o_wallet', 'o_cal', 'shelf0', 'dress0', 'o_shoes', 'o_pan', 'o_laptop', 'o_bed', 'o_skin', 'o_nail', 'o_ring', 'o_penlight', 'o_scale']
+  const CORE = ['room', 'o_mirror', 'me0', 'o_wallet', 'o_cal', 'shelf0', 'dress0', 'o_shoes', 'o_laptop', 'o_bed', 'o_nail', 'o_ring', 'o_penlight', 'o_scale']
   let got = 0
   const hideLoad = () => { const l = $('#loading'); if (l.dataset.gone) return; l.dataset.gone = 1; l.style.opacity = 0; l.style.pointerEvents = 'none'; setTimeout(() => { l.hidden = true }, 360) }
   applyLang(); muteIcon()

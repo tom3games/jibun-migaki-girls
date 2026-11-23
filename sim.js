@@ -5,7 +5,7 @@
   function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296 } }
   let MAX = 100
   const clamp = v => Math.max(0, Math.min(MAX, Math.round(v)))
-  const SLOW = { run: 1, cook: 1, sleep: 1, study: 1, work: 1 }
+  const SLOW = { run: 1, sleep: 1, study: 1 }
   const isSlow = a => !!SLOW[a]
 
   function create(D, seed) {
@@ -67,14 +67,10 @@
     if (S.sore && a === 'run') { S.hp -= D.SORE; out.msgs.push('sore') }
     S.sore = false
     if (c < 0) { S.money += c; S.spent -= c }
-    if (a === 'run') { S.hp -= 25; S.pend.soji += D.PEND.run; S.sore = true }
-    else if (a === 'cook') { S.money += 1500 * (x2 ? 2 : 1); S.hp -= 5; S.pend.soji += D.PEND.cook }
+    if (a === 'run') { S.hp -= 20; S.money += 1000; S.pend.soji += D.PEND.run; S.sore = true }
     else if (a === 'sleep') { S.hp += 45; S.pend.soji += D.PEND.sleep; S.sleeps++ }
-    else if (a === 'study') { if (S.hp < 15) { S.pend.naka += 1; out.msgs.push('nap') } else { S.hp -= 15; S.pend.naka += D.PEND.study } }
-    else if (a === 'work') { S.money += 9000 * (x2 ? 2 : 1); S.hp -= 25; S.naka += 1; S.pend.naka += D.PEND.work }
-    else if (a === 'makeup') { S.mori += 14 + Math.min(S.skill, 10); S.skill++ }
-    else if (a === 'skin') { S.mori += 6 * (x2 ? 2 : 1); S.soji += 1; S.hp += 5 }
-    else if (a === 'salon') { S.mori += 22; S.salonDays = 4 }
+    else if (a === 'study') { if (S.hp < 15) { S.pend.naka += 1; out.msgs.push('nap') } else { S.hp -= 20; S.money += 5000 * (x2 ? 2 : 1); S.naka += 1; S.pend.naka += D.PEND.study } }
+    else if (a === 'beauty') { S.mori += 16 + Math.min(S.skill, 8); S.skill++ }
     else if (a === 'selfie') { S.kakou += 8; S.likes += 40 + S.mori * 3 + S.kakou * 2; S.hp += 5 }
     else if (a === 'oshi') { S.hp += 15 }
     else if (a === 'fast') {
@@ -163,7 +159,7 @@
     fix(S); S.final = f; out.final = f
   }
 
-  // 恋人を決める（上から順に）。data.js の P の rank が強さ
+  // 恋人を決める（上から順に）
   function judge(D, S) {
     const H = D.H, so = S.soji, na = S.naka
     if (S.sleeps >= 16) return 'kuma'
@@ -173,19 +169,19 @@
     if (!top && S.granny >= 4) return 'granny'
     if (S.hosp >= 1) return 'doctor'
     if (S.noMoney >= 4) return 'sagi'
-    if (so >= H && na >= H && S.money >= D.JIBUN_MONEY) return 'jibun'
+    // 自分: 素地も中身も高く、美容も楽しんで、お金も残した
+    if (so >= H && na >= H && S.n.beauty >= 4 && S.money >= D.JIBUN_MONEY) return 'jibun'
     if (top && S.maxChain >= 20 && S.dateGreat >= 1) return 'kujo'
     if (so >= H && na >= H) return 'saeki'
     if (S.n.oshi >= 9) return 'oshi'
     if (S.n.oshi >= 5 && S.spent >= 40000) return 'host'
     // 近道ばかりの型。素地も育てていれば、こちらには来ない
-    if (S.n.skin + S.n.salon >= 9 && so < 50) return 'tomo'
+    if (S.n.beauty >= 12 && so < 50) return 'tomo'
     if (S.n.selfie >= 6 && so < 50) return 'kakou'
-    if (S.n.makeup >= 7 && so < 50) return 'ren'
+    if (S.n.beauty >= 7 && so < 50) return 'ren'
     // 勉強と仕事ばかり（中身は高い・素地は低い）
-    if (na >= H && so < 50 && S.n.study + S.n.work >= 14) return 'shikaku'
+    if (na >= H && so < 50 && S.n.study >= 14) return 'shikaku'
     if (S.n.run >= 10 && so >= H - 10) return 'riku'
-    if (S.n.cook >= 9 && so >= H - 15) return 'minato'
     if (so >= 50 || na >= 50) return 'tanaka'
     return 'takeshi'
   }
@@ -208,14 +204,13 @@
     // メイクは1回目から鏡に出る（素地がずっと高い時は、素地の方が勝つ）
     if (mo >= 14 && mo >= so - 10) return mo >= 40 ? 'me_mori2' : 'me_mori1'
     if (cnt('run') >= 2 && so < H) return 'me_run'
-    if (cnt('cook') >= 3 && so < H) return 'me_cook'
     if (na >= H && so >= D.L) return 'me_naka2'
     if (so >= H) return 'me_soji2'
     if (na >= 45 && na > so) return 'me_naka1'
     if (so >= 40) return 'me_soji1'
     return 'me0'
   }
-  const MIRRORS = ['me0', 'me_soji1', 'me_soji2', 'me_mori1', 'me_mori2', 'me_naka1', 'me_naka2', 'me_allhigh', 'me_run', 'me_cook', 'me_tired', 'me_fast', 'me_hosp', 'me_oshi', 'me_selfie']
+  const MIRRORS = ['me0', 'me_soji1', 'me_soji2', 'me_mori1', 'me_mori2', 'me_naka1', 'me_naka2', 'me_allhigh', 'me_run', 'me_tired', 'me_fast', 'me_hosp', 'me_oshi', 'me_selfie']
   const api = { create, act, choose, judge, title, deal, cost, mirror, MIRRORS, isSlow, next5 }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   root.Sim = api

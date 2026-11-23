@@ -43,11 +43,11 @@ def row(sheet, names, mx=320):
     for c, nm in zip(crops, names):
         cv = Image.new('RGBA', (w, bot - top)); cv.paste(c.crop((0, top, c.width, bot)), ((w - c.width) // 2, 0)); cv.thumbnail((mx, mx)); save(cv, nm, 82)
 if os.path.exists(RAW + 'dresser.png'): row('dresser', ['dress0', 'dress1', 'dress2', 'dress3'])
-P = ['shikaku', 'kujo', 'saeki', 'riku', 'minato', 'tanaka', 'takeshi', 'doctor', 'ren', 'kakou', 'host', 'oshi', 'tomo', 'kuma', 'sagi', 'jibun']
+P = ['shikaku', 'kujo', 'saeki', 'riku', 'tanaka', 'takeshi', 'doctor', 'ren', 'kakou', 'host', 'oshi', 'tomo', 'kuma', 'sagi', 'jibun']
 for n in P:
     if os.path.exists(RAW + n + '.png'):
         im = Image.open(RAW + n + '.png').convert('RGB'); im.thumbnail((640, 960)); save(im, 'p_' + n, 78)
         t = im.crop((0, 0, im.width, im.width)); t.thumbnail((200, 200)); save(t, 't_' + n, 74)
-for n in ['me0'] + ['me_' + k for k in ['soji1', 'soji2', 'mori1', 'mori2', 'naka1', 'naka2', 'allhigh', 'run', 'cook', 'tired', 'fast', 'hosp', 'oshi', 'selfie']]:
+for n in ['me0'] + ['me_' + k for k in ['soji1', 'soji2', 'mori1', 'mori2', 'naka1', 'naka2', 'allhigh', 'run', 'tired', 'fast', 'hosp', 'oshi', 'selfie']]:
     if os.path.exists(RAW + n + '.png'):
         im = Image.open(RAW + n + '.png').convert('RGB'); w, h = im.size; im = im.crop((0, int(h * 0.04), w, int(h * 0.04) + w)); im.thumbnail((360, 360)); save(im, n, 78)

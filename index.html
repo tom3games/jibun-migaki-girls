@@ -6,10 +6,10 @@
 <link rel="canonical" href="https://tom3games.com/play/jibun-migaki-girls/">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>自分磨き30日 女の子編（恋人は積み上げた分だけ）</title>
-<meta name="description" content="女の子が30日で自分を磨くバカゲー。メイクやサロンはすぐ効くけど寝ると落ちる。ランニングや自炊は何も変わらないのに、続けると急にまとめて効く。30日後、ドアの前に来る相手はランクS〜Eの全18人。">
+<meta name="description" content="女の子が30日で自分を磨くバカゲー。メイクやサロンはすぐ効くけど寝ると落ちる。ランニングや自炊は何も変わらないのに、続けると急にまとめて効く。30日後、ドアの前に来る相手は全17人。">
 <meta property="og:type" content="website">
 <meta property="og:title" content="自分磨き30日 女の子編（恋人は積み上げた分だけ）">
-<meta property="og:description" content="すぐ効く盛りか、何も変わらない毎日か。30日後のドアの前には、ハイスペすぎる人から、クーポンを持った女友達まで全18人。">
+<meta property="og:description" content="すぐ効く盛りか、何も変わらない毎日か。30日後のドアの前には、ハイスペすぎる人から、クーポンを持った女友達まで全17人。">
 <meta property="og:image" content="https://tom3games.com/play/jibun-migaki-girls/og.png">
 <meta property="og:url" content="https://tom3games.com/play/jibun-migaki-girls/">
 <meta name="twitter:card" content="summary_large_image">
@@ -110,8 +110,8 @@ img{-webkit-user-drag:none;user-select:none}
 .obj.deal .lab{background:#ffb4a4;outline:2px solid var(--red)}
 .lab[data-deal]:not([data-deal=""])::after{content:attr(data-deal);display:block;color:var(--red);font-size:11px}
 .obj.poor{opacity:.55}
-#oShelf,#oDress{width:30%;height:100%}
-#oShelf img,#oDress img{height:calc(100% - 64px);width:100%}
+#oShelf,#oDress{width:30%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px}
+#oShelf img,#oDress img{height:calc(100% - 40px);width:100%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(0 5px 4px rgba(40,20,10,.35))}
 .gtag{position:relative;background:#2a1d14;color:#fff3dc;font-family:var(--hand);font-size:13px;padding:1px 7px;border-radius:3px;white-space:nowrap;z-index:2}
 #mirror{position:relative;width:34%;height:100%;display:flex;align-items:flex-start;justify-content:center}
 #mirror .mf{position:relative;height:88%;aspect-ratio:231/300}
@@ -132,14 +132,14 @@ img{-webkit-user-drag:none;user-select:none}
 #tip{position:absolute;left:0;right:0;top:-2px;text-align:center;font-family:var(--hand);font-size:13px;color:#fff;text-shadow:0 1px 2px #000,0 0 6px #000;pointer-events:none}
 
 /* 床: 上の段は遅れて効く方（4つ）、下の段はすぐ効く方（5つ） */
-#floor{flex:1;min-height:0;display:grid;grid-template-columns:repeat(20,1fr);grid-template-rows:repeat(2,minmax(0,1fr));gap:2px 3px;align-items:end}
-#floor .obj{height:100%;min-height:0;min-width:0;grid-column:span 5}
-#floor .obj.q{grid-column:span 4}
+#floor{flex:1;min-height:0;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(2,minmax(0,1fr));gap:2px 3px;align-items:end}
+#floor .obj{height:100%;min-height:0;min-width:0;grid-column:span 4}
+#floor .obj.q{grid-column:span 3}
 #floor .obj img{flex:1;min-height:0;height:0;width:100%;max-width:100%}
 #floor .obj.q .lab{padding:2px 4px 3px;font-size:clamp(11px,3.1vw,14px)}
 .obj.q .lab{background:#ffc9d6}
 .obj.q:nth-child(2n) .lab{background:#f9b3c6}
-#oDress .lab{background:#ffc9d6}
+
 
 .float{position:fixed;z-index:30;font-family:var(--pop);font-size:20px;pointer-events:none;color:#1f7a39;text-shadow:0 0 3px #fff,0 0 6px #fff;animation:up 1.1s ease-out forwards;white-space:nowrap}
 .float.neg{color:#c2412c}
@@ -346,18 +346,16 @@ img{-webkit-user-drag:none;user-select:none}
     <div id="pig"><img src="img/o_wallet.webp?v=1" alt=""><span id="money"></span></div>
     <div id="habit"><img src="img/o_cal.webp?v=1" alt=""><div id="dots"></div><span id="hTxt"></span><span id="dateIn"></span></div>
     <div id="wall">
-      <button class="obj" id="oShelf" data-a="study"><img id="shelfImg" src="img/shelf0.webp?v=1" alt=""><span class="gtag" id="gNaka"></span><span class="lab"></span></button>
+      <div class="disp" id="oShelf"><img id="shelfImg" src="img/shelf0.webp?v=1" alt=""><span class="gtag" id="gNaka"></span></div>
       <div id="mirror"><div class="mf"><img src="img/o_mirror.webp?v=1" alt=""><div class="glass"><img id="meImg" src="img/me0.webp?v=1" alt=""></div></div><span class="gtag" id="gSoji"></span><span id="meNote"></span></div>
-      <button class="obj" id="oDress" data-a="makeup"><img id="dressImg" src="img/dress0.webp?v=1" alt=""><span class="gtag" id="gMori"></span><span class="lab"></span></button>
+      <div class="disp" id="oDress"><img id="dressImg" src="img/dress0.webp?v=1" alt=""><span class="gtag" id="gMori"></span></div>
     </div>
     <div id="lineBox"><div id="bubble"></div><div id="tip" hidden></div></div>
     <div id="floor">
       <button class="obj" id="oRun" data-a="run"><img src="img/o_shoes.webp?v=1" alt=""><span class="lab"></span></button>
-      <button class="obj" data-a="cook"><img src="img/o_pan.webp?v=1" alt=""><span class="lab"></span></button>
-      <button class="obj" data-a="work"><img src="img/o_laptop.webp?v=1" alt=""><span class="lab"></span></button>
+      <button class="obj" id="oStudy" data-a="study"><img src="img/o_laptop.webp?v=1" alt=""><span class="lab"></span></button>
       <button class="obj" id="oBed" data-a="sleep"><img src="img/o_bed.webp?v=1" alt=""><span class="lab"></span></button>
-      <button class="obj q" data-a="skin"><img src="img/o_skin.webp?v=1" alt=""><span class="lab"></span></button>
-      <button class="obj q" data-a="salon"><img src="img/o_nail.webp?v=1" alt=""><span class="lab"></span></button>
+      <button class="obj q" id="oBeauty" data-a="beauty"><img src="img/o_nail.webp?v=1" alt=""><span class="lab"></span></button>
       <button class="obj q" data-a="selfie"><img src="img/o_ring.webp?v=1" alt=""><span class="lab"></span></button>
       <button class="obj q" data-a="oshi"><img src="img/o_penlight.webp?v=1" alt=""><span class="lab"></span></button>
       <button class="obj q" data-a="fast"><img src="img/o_scale.webp?v=1" alt=""><span class="lab"></span></button>
@@ -418,12 +416,12 @@ img{-webkit-user-drag:none;user-select:none}
 </script>
 <script src="tm.js?v=3" data-game="jibun-migaki-girls"></script>
 <script src="sfx.js?v=4"></script>
-<script src="config.js?v=1"></script>
-<script src="data.js?v=2"></script>
-<script src="chats.js?v=2"></script>
-<script src="sim.js?v=3"></script>
-<script src="plans.js?v=2"></script>
-<script src="game.js?v=2"></script>
+<script src="config.js?v=2"></script>
+<script src="data.js?v=3"></script>
+<script src="chats.js?v=3"></script>
+<script src="sim.js?v=5"></script>
+<script src="plans.js?v=3"></script>
+<script src="game.js?v=3"></script>
 <script src="support.js?v=6" data-ja="スムージー" data-en="a smoothie"></script>
 </body>
 </html>

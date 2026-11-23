@@ -130,12 +130,20 @@ for (const plan of plans) {
     return { seed: r.seed, taps: r.taps }
   })
 }
-await t('図鑑が18人で埋まる', async () => { const n = await p.evaluate(() => jmg.book().length); expect(n === 18, n); return n })
+await t('図鑑が17人で埋まる', async () => { const n = await p.evaluate(() => jmg.book().length); expect(n === 17, n); return n })
 // ---- 図鑑のトーク: 17人全員を本物のタップで開いて、8件以上・戻る
 const AFF = await p.evaluate(() => window.AFF_URL)
-await t('結果画面に PR は出ない（AFF_URL は空。女の子向けの行き先は未定）', async () => {
-  const r = await p.evaluate(() => ({ url: window.AFF_URL, hidden: document.querySelector('#affBox').hidden, vis: [...document.querySelectorAll('a[rel*=sponsored]')].filter(a => a.getBoundingClientRect().height > 0).length }))
-  expect(r.url === '' && r.hidden && r.vis === 0, JSON.stringify(r))
+await t('結果画面に PR ボタン（PR の字・注記・rel=sponsored・新しいタブ・指定のURL）', async () => {
+  const r = await p.evaluate(() => { const a = document.querySelector('#bAff'), b = document.querySelector('#affBox'), cs = getComputedStyle(a.querySelector('.pr')), ct = getComputedStyle(a.querySelector('#affTxt')); const rr = a.getBoundingClientRect(); return { vis: !b.hidden && rr.height > 0 && rr.bottom <= innerHeight, href: a.href, rel: a.rel, target: a.target, pr: a.querySelector('.pr').textContent, prSize: parseFloat(cs.fontSize), txtSize: parseFloat(ct.fontSize), txt: a.textContent, note: document.querySelector('#affNote').textContent } })
+  expect(r.vis && r.href === AFF && /sponsored/.test(r.rel) && /noopener/.test(r.rel) && r.target === '_blank' && r.pr === 'PR' && r.prSize >= 12 && r.prSize >= r.txtSize - 2 && /占ってみる/.test(r.txt) && /17歳以上/.test(r.note) && !/当たる|必ず|今だけ/.test(r.txt + r.note), JSON.stringify(r))
+  await p.waitForTimeout(700); await p.screenshot({ path: ROOT + '/shots/v-end-pr.png' })
+  return { href: r.href.slice(0, 40) + '...', prSize: r.prSize, txtSize: r.txtSize }
+})
+await t('PR ボタンを押すと aff_click を記録（遷移は止めて確かめる）', async () => {
+  await p.evaluate(() => document.querySelector('#bAff').addEventListener('click', e => e.preventDefault(), { once: true }))
+  const xy = await p.evaluate(() => { const r = document.querySelector('#bAff').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })
+  await p.mouse.click(xy.x, xy.y)
+  const n = await p.evaluate(() => window.__tmLog.filter(e => e.name === 'aff_click').length); expect(n === 1, n)
 })
 await p.click('#bBook2'); await p.waitForSelector('#book:not([hidden])')
 const chatShots = ['tomo', 'kujo', 'shikaku', 'sagi']
@@ -191,9 +199,9 @@ await t('トーク: 送信ボタンでも送れる（言語を切り替えても
   expect(r.mine === 1 && /Unread/.test(r.meta) && r.foot, JSON.stringify(r))
 })
 await p.click('#bookClose')
-await t('図鑑の並びがランク順（S→A→B→C→D→E→番外）で、札が全員に付いている', async () => {
-  const r = await p.evaluate(() => { const order = ['S', 'A', 'B', 'C', 'D', 'E', 'EX'], rk = D.P.map(x => x.rank); return { sorted: rk.every((v, i) => !i || order.indexOf(v) >= order.indexOf(rk[i - 1])), badges: document.querySelectorAll('#grid .cell .rk').length, n: D.P.length, top: D.P[0].id } })
-  expect(r.sorted && r.badges === r.n && r.top === 'kujo', JSON.stringify(r)); return r
+await t('ランクの札・ランクの字が無い（図鑑・名札・招待状・トーク）', async () => {
+  const r = await p.evaluate(() => ({ rk: document.querySelectorAll('.rk').length, rankField: D.P.some(x => 'rank' in x), txt: /ランク[A-ES]|Rank [A-ES]/.test(document.body.innerText + JSON.stringify(D.UI) + JSON.stringify(CHATS)) }))
+  expect(!r.rk && !r.rankField && !r.txt, JSON.stringify(r))
 })
 await t('結果の招待状が描けている（輝度の散らばり）', async () => {
   const v = await p.evaluate(() => { const c = document.querySelector('#card'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let s = 0, s2 = 0, n = 0; for (let i = 0; i < d.length; i += 4 * 97) { const v = d[i] * .3 + d[i + 1] * .59 + d[i + 2] * .11; s += v; s2 += v * v; n++ } return Math.round(s2 / n - (s / n) ** 2) })
@@ -210,7 +218,7 @@ await t('画像を保存: png が落ちてくる', async () => {
 await t('支援リンク（スムージー）が結果画面にある', async () => { const s = await p.textContent('#tmSupport'); expect(/スムージー/.test(s), s) })
 await t('音: 行動ごとに録音を鳴らす呼び出しがある・実際は無音', async () => {
   const r = await p.evaluate(() => ({ c: window.__sfxCalls, ok: window.__muteOk() }))
-  expect(r.ok && r.c.run > 0 && r.c.cook > 0 && r.c.makeup > 0 && r.c.mile > 0 && r.c.date > 0 && r.c.drum > 0 && r.c.tear > 0 && r.c.win > 0 && r.c.lose > 0 && r.c.knock > 0 && r.c.bell > 0 && r.c.dopen > 0 && r.c.creak > 0, JSON.stringify(r)); return r.c
+  expect(r.ok && r.c.run > 0 && r.c.study > 0 && r.c.beauty > 0 && r.c.mile > 0 && r.c.date > 0 && r.c.drum > 0 && r.c.tear > 0 && r.c.win > 0 && r.c.lose > 0 && r.c.knock > 0 && r.c.bell > 0 && r.c.dopen > 0 && r.c.creak > 0, JSON.stringify(r)); return r.c
 })
 await p.close()
 
@@ -221,36 +229,36 @@ const tapDay = async a => { await tapXY(q, a); await q.waitForFunction(() => jmg
 await t('お金が足りないと押しても日が減らない', async () => {
   await q.evaluate(() => { jmg.setSeed(77); jmg.fast(0.02) }); await q.click('#bStart'); await clean()
   await q.evaluate(() => { jmg.raw().money = 500 })
-  const d0 = await q.evaluate(() => jmg.state().day); await tapXY(q, 'salon'); await q.waitForTimeout(100)
+  const d0 = await q.evaluate(() => jmg.state().day); await tapXY(q, 'oshi'); await q.waitForTimeout(100)
   const r = await q.evaluate(() => ({ day: jmg.state().day, b: document.querySelector('#bubble').textContent, nm: jmg.state().noMoney }))
   expect(r.day === d0 && /足りない/.test(r.b) && r.nm === 1, JSON.stringify(r))
 })
 await t('遅れて効く: 走っても4日は何も変わらず（「何も変わらない……」）、丸が5個目でまとめて効く', async () => {
   await q.evaluate(() => { jmg.setSeed(78); jmg.fast(0.02); jmg.start() }); await clean()
   const s0 = await q.evaluate(() => jmg.state().soji), seq = []
-  for (const a of ['run', 'cook', 'study', 'cook']) { await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay(a); seq.push(await q.evaluate(() => ({ soji: jmg.state().soji, chain: jmg.state().chain, b: document.querySelector('#bubble').textContent, dots: document.querySelectorAll('#dots i.on').length }))) }
+  for (const a of ['run', 'study', 'sleep', 'study']) { await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay(a); seq.push(await q.evaluate(() => ({ soji: jmg.state().soji, chain: jmg.state().chain, b: document.querySelector('#bubble').textContent, dots: document.querySelectorAll('#dots i.on').length }))) }
   await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay('run')
   const m = await q.evaluate(() => ({ soji: jmg.state().soji, chain: jmg.state().chain, b: document.querySelector('#bubble').textContent, miles: window.__miles }))
   await q.screenshot({ path: ROOT + '/shots/v-mile5.png' })
   expect(seq.every(x => x.soji === s0 && /何も変わらない/.test(x.b)) && seq.map(x => x.chain).join() === '1,2,3,4' && seq[3].dots === 4 && m.chain === 5 && m.soji >= s0 + 10 && /まとめて効いた/.test(m.b) && !/\d/.test(m.b) && m.miles === 1, JSON.stringify({ s0, seq, m })); return { s0, after: m.soji }
 })
 await t('1日休むと、丸は切れずに「ためた分」が少し減るだけ', async () => {
-  await clean(); await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay('cook'); await tapDay('study')
+  await clean(); await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay('sleep'); await tapDay('study')
   const a = await q.evaluate(() => ({ ...jmg.state().pend, chain: jmg.state().chain }))
-  await tapDay('makeup')
+  await tapDay('selfie')
   const b = await q.evaluate(() => ({ ...jmg.state().pend, chain: jmg.state().chain, gap: jmg.state().gap, t: document.querySelector('#hTxt').textContent }))
   expect(b.chain === a.chain && b.gap === 1 && b.soji < a.soji && b.soji > a.soji * 0.8 && /休んだ/.test(b.t), JSON.stringify({ a, b })); return b.t
 })
 await t('3日空くと丸が全部消えて、ためた分もゼロ（やり直し）', async () => {
-  await tapDay('skin'); const w = await q.evaluate(() => ({ t: document.querySelector('#hTxt').textContent, warn: document.querySelector('#habit').classList.contains('warn') }))
-  await q.evaluate(() => { jmg.raw().money = 50000 }); await tapDay('salon')
+  await tapDay('selfie'); const w = await q.evaluate(() => ({ t: document.querySelector('#hTxt').textContent, warn: document.querySelector('#habit').classList.contains('warn') }))
+  await q.evaluate(() => { jmg.raw().money = 50000 }); await tapDay('beauty')
   const r = await q.evaluate(() => ({ chain: jmg.state().chain, pend: jmg.state().pend, b: document.querySelector('#bubble').textContent }))
   expect(/最初から/.test(w.t) && w.warn && r.chain === 0 && r.pend.soji === 0 && r.pend.naka === 0 && /全部消えた/.test(r.b), JSON.stringify({ w, r })); return w.t
 })
-await t('すぐ効く: メイクはその日に盛りが上がり、寝ると落ちる', async () => {
+await t('すぐ効く: 美容はその日に盛りが上がり、寝ると落ちる', async () => {
   await clean(); await q.evaluate(() => { const S = jmg.raw(); S.mori = 0; S.salonDays = 0; jmg.fast(1) }); await q.waitForTimeout(50)
   const m0 = await q.evaluate(() => jmg.raw().mori)
-  await tapXY(q, 'makeup'); await q.waitForTimeout(120)
+  await tapXY(q, 'beauty'); await q.waitForTimeout(120)
   const up = await q.evaluate(() => ({ tag: +document.querySelector('#gMori').textContent.replace(/\D/g, ''), eve: jmg.eve(), me: jmg.meSrc() }))
   await q.waitForFunction(() => !jmg.busy()); await q.waitForTimeout(100)
   const night = await q.evaluate(() => ({ tag: +document.querySelector('#gMori').textContent.replace(/\D/g, ''), eve: jmg.eve() }))
@@ -278,7 +286,7 @@ await t('極端な食事制限は得にならない（断食を混ぜた遊び�
 await t('会う日（10日目）: 盛りと加工が素地より高すぎると「写真と違う」で帰られる', async () => {
   await q.evaluate(() => { jmg.setSeed(82); jmg.fast(0.02); jmg.start() })
   await clean(); await q.evaluate(() => { const S = jmg.raw(); S.day = 10; S.soji = 20; S.kakou = 30; S.mori = 10 })
-  await tapXY(q, 'makeup'); await q.waitForFunction(() => jmg.dateOpen())
+  await tapXY(q, 'beauty'); await q.waitForFunction(() => jmg.dateOpen())
   const r = await q.evaluate(() => ({ txt: document.querySelector('#memoTxt').textContent, head: document.querySelector('#memoHead').textContent, one: document.querySelector('#bC1').hidden, day: jmg.state().day }))
   await q.screenshot({ path: ROOT + '/shots/v-date-fail-real.png' })
   await tapXY(q, 'c0'); await q.waitForFunction(() => !jmg.busy())
@@ -306,9 +314,9 @@ await t('同じ種・同じ操作なら同じ結果（運でなく選び方で�
 })
 await t('すぐ効く方は序盤が気持ちいい（5日目までの見た目の伸び）が、30日後は続けた方が上のランク', async () => {
   const r = await q.evaluate(() => {
-    const ORD = { S: 6, A: 5, B: 4, C: 3, D: 2, E: 1, EX: 4 }, RK = Object.fromEntries(D.P.map(p => [p.id, ORD[p.rank]]))
+    const RK = Object.fromEntries(D.P.map(p => [p.id, p.tier]))
     const play = (pick) => { let early = 0, rank = 0; for (let k = 0; k < 30; k++) { const S = Sim.create(D, 700 + k); while (!S.done) { if (S.choice) { Sim.choose(D, S, 1); continue } const a = pick(S); const o = Sim.act(D, S, a); if (!o.ok) Sim.act(D, S, 'sleep'); if (S.day === 5 && !S.done) early += S.soji + S.temp + S.mori - D.START.soji } rank += RK[Sim.judge(D, S)] } return { early: early / 30, rank: rank / 30 } }
-    const fast = play(S => S.money >= 9000 && S.day % 3 === 0 ? 'salon' : S.day % 2 ? 'makeup' : 'skin')
+    const fast = play(S => S.money >= 2500 && S.day % 2 ? 'beauty' : 'selfie')
     const slow = play(S => Plans.P.kujo(S))
     return { fast, slow }
   })
@@ -366,6 +374,14 @@ await q.close()
   })
   await ctx.close()
 }
+await t('PR はタイトル・遊び・図鑑・トークには出ない', async () => {
+  const z = await open(browser)
+  const vis = () => z.evaluate(() => [...document.querySelectorAll('a[rel*=sponsored], #affBox')].filter(a => a.checkVisibility()).length)
+  const r = [await vis()]; await z.click('#bBook'); r.push(await vis()); await z.click('#bookClose')
+  await z.evaluate(() => { jmg.setSeed(2); jmg.fast(0.02) }); await z.click('#bStart'); r.push(await vis())
+  await z.close(); expect(r.every(v => v === 0), JSON.stringify(r))
+})
+
 // ---- 値の上限・鏡の自分
 await t('素地・中身・盛りは100で止まる', async () => {
   const z = await open(browser)
@@ -373,9 +389,9 @@ await t('素地・中身・盛りは100で止まる', async () => {
   await z.close()
   expect(c.soji === 100 && c.naka === 100 && c.mori <= 100, JSON.stringify(c)); return c
 })
-await t('鏡の自分15通りが、どれも bot の遊び方で出る', async () => {
+await t('鏡の自分14通りが、どれも bot の遊び方で出る', async () => {
   const p0 = await open(browser); const r = await p0.evaluate(() => { const seen = {}; for (const pl of Object.keys(Plans.P)) for (let i = 0; i < 6; i++) { const S = Sim.create(D, 1000 + i * 37); while (!S.done) { if (S.choice) { Sim.choose(D, S, Plans.choice(pl, S.choice)); continue } if (!Sim.act(D, S, Plans.P[pl](S)).ok) Sim.act(D, S, Plans.FB[pl] || 'sleep'); for (const m of [Sim.mirror(D, S), Sim.mirror(D, S, true)]) seen[m] = seen[m] || pl } } return { miss: Sim.MIRRORS.filter(m => !seen[m]), n: Sim.MIRRORS.length, seen } })
-  await p0.close(); expect(r.n === 15 && !r.miss.length, JSON.stringify(r)); return r.seen
+  await p0.close(); expect(r.n === 14 && !r.miss.length, JSON.stringify(r)); return r.seen
 })
 await t('鏡の自分が本物のタップの遊びで変わっていく（走ってばかり→走る人→顔色→光りだす）', async () => {
   const z = await open(browser)
@@ -390,19 +406,19 @@ await t('鏡の自分が本物のタップの遊びで変わっていく（走�
     if (seq.at(-1) !== nm) { seq.push(nm); if (['me_run', 'me_soji1', 'me_soji2'].includes(nm)) { await z.waitForTimeout(200); await z.locator('#mirror').screenshot({ path: `${ROOT}/shots/v-mirror-${nm}.png` }) } }
   }
   const ch = await z.evaluate(() => window.__meChanges); await z.close()
-  expect(seq.includes('me_run') && seq.includes('me_soji1') && seq.includes('me_soji2') && ch >= 3, JSON.stringify({ seq, ch })); return seq.join('>')
+  expect(seq.includes('me_run') && seq.includes('me_soji2') && ch >= 3, JSON.stringify({ seq, ch })); return seq.join('>')
 })
-await t('鏡の絵15枚が全部読める・値どおりに出る', async () => {
+await t('鏡の絵14枚が全部読める・値どおりに出る', async () => {
   const z = await open(browser)
   await z.evaluate(() => { jmg.setSeed(9); jmg.fast(0.02) }); await z.click('#bStart')
-  const SET = { me0: {}, me_soji1: { soji: 45 }, me_soji2: { soji: 70 }, me_mori1: { mori: 16 }, me_mori2: { mori: 45 }, me_naka1: { naka: 50 }, me_naka2: { naka: 70, soji: 45 }, me_allhigh: { soji: 80, naka: 70 }, me_run: { log: ['run', 'cook', 'run', 'run'] }, me_cook: { log: ['cook', 'cook', 'cook'] }, me_tired: { hp: 5 }, me_fast: { temp: 20, fastRun: 2 }, me_hosp: { lastHosp: 1 }, me_oshi: { log: ['oshi', 'oshi'] }, me_selfie: { log: ['selfie', 'selfie'] } }
+  const SET = { me0: {}, me_soji1: { soji: 45 }, me_soji2: { soji: 70 }, me_mori1: { mori: 16 }, me_mori2: { mori: 45 }, me_naka1: { naka: 50 }, me_naka2: { naka: 70, soji: 45 }, me_allhigh: { soji: 80, naka: 70 }, me_run: { log: ['run', 'study', 'run', 'run'] }, me_tired: { hp: 5 }, me_fast: { temp: 20, fastRun: 2 }, me_hosp: { lastHosp: 1 }, me_oshi: { log: ['oshi', 'oshi'] }, me_selfie: { log: ['selfie', 'selfie'] } }
   const bad = []
   for (const [nm, st] of Object.entries(SET)) {
     const got = await z.evaluate(st => { const S = jmg.raw(); Object.assign(S, { soji: 20, naka: 20, mori: 0, temp: 0, fastRun: 0, hp: 80, lastHosp: -99, log: [], day: 3 }, st); return Sim.mirror(D, S) }, st)
     const ok = await z.evaluate(async nm => { const i = new Image(); i.src = `img/${nm}.webp?v=1`; try { await i.decode(); return i.naturalWidth >= 200 } catch (e) { return false } }, nm)
     if (got !== nm || !ok) bad.push(nm + ':' + got + ':' + ok)
   }
-  await z.close(); expect(!bad.length && Object.keys(SET).length === 15, bad.join(','))
+  await z.close(); expect(!bad.length && Object.keys(SET).length === 14, bad.join(','))
 })
 
 // ---- 30日後のドア（2026-11-12 本人「扉を自分の手で開くみたいな感じに」）。勝手に開かない・ドラッグ・途中で離す・タップ・のぞき穴・判定は変わらない
@@ -514,7 +530,7 @@ await t('英語に切り替えると日本語が消える（タイトル・部�
 })
 await t('英語で最後まで遊べて招待状も英語', async () => {
   await e.evaluate(() => jmg.fast(0.02))
-  for (let i = 0; i < 70; i++) { const st = await e.evaluate(() => jmg.state()); if (st.done) break; if (st.choice) await tapXY(e, 'c1'); else await tapXY(e, st.hp < 30 ? 'sleep' : ['run', 'study', 'work', 'makeup'][i % 4]); await e.waitForFunction(() => jmg.dateOpen() || !jmg.busy()); if (await e.evaluate(() => jmg.dateOpen())) { const dt = await e.textContent('#memoCard'); if (/[ぁ-んァ-ヶ一-龠]/.test(dt)) throw new Error('date ja: ' + dt); await tapXY(e, 'c0'); await e.waitForFunction(() => !jmg.busy()) } }
+  for (let i = 0; i < 70; i++) { const st = await e.evaluate(() => jmg.state()); if (st.done) break; if (st.choice) await tapXY(e, 'c1'); else await tapXY(e, st.hp < 30 ? 'sleep' : ['run', 'study', 'sleep', 'beauty'][i % 4]); await e.waitForFunction(() => jmg.dateOpen() || !jmg.busy()); if (await e.evaluate(() => jmg.dateOpen())) { const dt = await e.textContent('#memoCard'); if (/[ぁ-んァ-ヶ一-龠]/.test(dt)) throw new Error('date ja: ' + dt); await tapXY(e, 'c0'); await e.waitForFunction(() => !jmg.busy()) } }
   await doorReady(e); const xy = await e.evaluate(() => jmg.doorXY()); await e.mouse.click(xy.knob.x, xy.knob.y); await e.waitForFunction(() => !jmg.door().anim)
   const ajar = await e.evaluate(() => ({ t: document.querySelector('#rvText').textContent, s: document.querySelector('#peekSay').textContent, k: document.querySelector('#knockFx').textContent, al: document.querySelector('#door').getAttribute('aria-label') }))
   expect(ajar.t === 'Open the door' && ajar.k === 'Knock knock' && ajar.al === 'Open the door' && ajar.s && !/[ぁ-んァ-ヶ一-龠]/.test(ajar.s), JSON.stringify(ajar))
@@ -525,12 +541,12 @@ await t('英語で最後まで遊べて招待状も英語', async () => {
   await e.click('#bNext'); await e.waitForFunction(() => window.__jmgCardDone); await e.screenshot({ path: ROOT + '/shots/v-en-end.png' })
   expect(e.errs.length === 0, e.errs.join('|'))
 })
-await t('英語: トークも英語（PR は出ない）', async () => {
-  const pr = ''
+await t('英語: PR ボタンとトークも英語', async () => {
+  const pr = await e.evaluate(() => document.querySelector('#affBox').innerText)
   const who = await e.evaluate(() => jmg.state().who)
   await e.click('#bBook2'); const xy = await e.evaluate(i => jmg.cellXY(i), who); await e.mouse.click(xy.x, xy.y); await e.waitForFunction(() => window.__chatDone)
   const ch = await e.evaluate(() => document.querySelector('#chat').innerText); await e.screenshot({ path: ROOT + '/shots/v-en-chat.png' })
-  expect(!/[ぁ-んァ-ヶ一-龠]/.test(ch) && /Read/.test(ch), ch.slice(0, 120))
+  expect(/PR/.test(pr) && /reading/.test(pr) && /17\+/.test(pr) && !/[ぁ-んァ-ヶ一-龠]/.test(pr + ch) && /Read/.test(ch), pr + ' || ' + ch.slice(0, 120))
   await e.click('#chBack'); await e.click('#bookClose')
 })
 await e.close()
@@ -564,10 +580,10 @@ for (const [w, h, name] of [[360, 640, 'small'], [390, 844, 'phone'], [430, 932,
     const b = await s.evaluate(() => { const r = document.querySelector('#chBack').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } }); await s.touchscreen.tap(b.x, b.y); await s.waitForSelector('#chat', { state: 'hidden' }) }
   for (const [v, rr] of Object.entries(views)) await t(`一画面に収まる ${name} ${w}x${h} ${v}`, async () => { expect(!rr.over.length, JSON.stringify(rr)) })
   await t(`${name}: はみ出し・エラーなし（${r.who}）`, async () => { const o = await overflow(s); expect(o.sw <= o.W && !o.bad.length && !s.errs.length, JSON.stringify(o) + s.errs.join('|')) })
-  await t(`${name}: 部屋の11の物が全部画面内で押せる大きさ`, async () => {
+  await t(`${name}: 部屋の7つの物が全部画面内で押せる大きさ`, async () => {
     await s.tap('#bookClose'); await s.tap('#bAgain'); await s.waitForTimeout(150)
     const r2 = await s.evaluate(() => Object.keys(D.ACT).map(a => { const x = jmg.itemXY(a); return [a, Math.round(x.w), Math.round(x.h), x.y < innerHeight && x.y > 0] }))
-    expect(r2.length === 11 && r2.every(([, w, h, inn]) => w >= 44 && h >= 44 && inn), JSON.stringify(r2))
+    expect(r2.length === 7 && r2.every(([, w, h, inn]) => w >= 44 && h >= 44 && inn), JSON.stringify(r2))
   })
   await s.close()
 }

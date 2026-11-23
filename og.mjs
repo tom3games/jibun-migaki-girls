@@ -24,10 +24,10 @@ body::before{content:"";position:absolute;inset:0;background:linear-gradient(90d
 .t p{font-size:30px;margin-top:14px;text-shadow:0 2px 8px #000}
 .t small{display:block;margin-top:22px;font-size:23px;line-height:1.5;color:#f3d36b;text-shadow:0 2px 6px #000}
 </style></head><body>
-<div class="c" style="left:36px;top:160px;transform:rotate(-6deg)"><i>美容ばかり</i><img src="img/p_tomo.webp"><b>クーポンの女友達</b><u style="background:#6d6d6d;right:auto;left:-18px;top:30px;transform:rotate(-8deg)">E</u></div>
-<div class="c" style="left:262px;top:100px;transform:rotate(2deg);z-index:2"><i>加工ばかり</i><img src="img/p_kakou.webp"><b>画面の向こうの人</b><u style="background:#7a5aa0;right:auto;left:-18px;top:40px;transform:rotate(-6deg)">D</u></div>
-<div class="c" style="left:500px;top:150px;transform:rotate(7deg);z-index:3"><i>しんどい方を続けた</i><img src="img/p_kujo.webp"><b>ハイスペすぎる人</b><u style="background:#c99a1e">S</u></div>
-<div class="t"><h1>自分磨き<br><em>30</em>日<span>女の子編</span></h1><p>恋人は、積み上げた分だけ</p><small>メイクはすぐ効く。寝ると落ちる<br>ランニングは何も変わらない<br>ドアの前に来るのは全18人</small></div>
+<div class="c" style="left:36px;top:160px;transform:rotate(-6deg)"><i>美容ばかり</i><img src="img/p_tomo.webp"><b>クーポンの女友達</b></div>
+<div class="c" style="left:262px;top:100px;transform:rotate(2deg);z-index:2"><i>加工ばかり</i><img src="img/p_kakou.webp"><b>画面の向こうの人</b></div>
+<div class="c" style="left:500px;top:150px;transform:rotate(7deg);z-index:3"><i>しんどい方を続けた</i><img src="img/p_kujo.webp"><b>ハイスペすぎる人</b></div>
+<div class="t"><h1>自分磨き<br><em>30</em>日<span>女の子編</span></h1><p>恋人は、積み上げた分だけ</p><small>メイクはすぐ効く。寝ると落ちる<br>ランニングは何も変わらない<br>ドアの前に来るのは全17人</small></div>
 </body></html>`)
 await p.waitForLoadState('networkidle'); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(300)
 await p.screenshot({ path: ROOT + '/og.png' })
