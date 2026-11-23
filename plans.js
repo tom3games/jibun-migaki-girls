@@ -23,7 +23,8 @@
   P.jibun = S => (S.money < 105000 && S.hp >= 45 && S.day % 2 === 0) ? 'work' : bal(S, { money: 115000 })
   P.riku = S => S.hp < 40 ? 'sleep' : S.sore ? 'cook' : 'run'
   P.minato = S => S.hp < 30 ? 'sleep' : 'cook'
-  P.tanaka = S => S.hp < 35 ? 'sleep' : ['work', 'study', 'cook'][S.day % 3]
+  P.shikaku = S => S.hp < 35 ? 'sleep' : S.day % 2 ? 'study' : 'work'
+  P.tanaka = S => S.hp < 35 ? 'sleep' : S.day % 4 === 0 && S.money >= 3000 ? 'skin' : ['run', 'study', 'cook'][S.day % 3] === 'run' && S.sore ? 'cook' : ['run', 'study', 'cook'][S.day % 3]
   // いろいろ少しずつ（しんどい方と楽な方を交互）
   P.takeshi = S => ['makeup', 'run', 'oshi', 'sleep', 'skin', 'cook', 'selfie', 'study'][S.day % 8] === 'oshi' && S.money < 7000 ? 'work' : ['makeup', 'run', 'oshi', 'sleep', 'skin', 'cook', 'selfie', 'study'][S.day % 8]
   P.doctor = S => S.day <= 5 ? 'fast' : grind(S)

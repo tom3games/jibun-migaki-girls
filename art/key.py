@@ -43,7 +43,7 @@ def row(sheet, names, mx=320):
     for c, nm in zip(crops, names):
         cv = Image.new('RGBA', (w, bot - top)); cv.paste(c.crop((0, top, c.width, bot)), ((w - c.width) // 2, 0)); cv.thumbnail((mx, mx)); save(cv, nm, 82)
 if os.path.exists(RAW + 'dresser.png'): row('dresser', ['dress0', 'dress1', 'dress2', 'dress3'])
-P = ['kujo', 'saeki', 'riku', 'minato', 'tanaka', 'takeshi', 'doctor', 'ren', 'kakou', 'host', 'oshi', 'tomo', 'kuma', 'sagi', 'jibun']
+P = ['shikaku', 'kujo', 'saeki', 'riku', 'minato', 'tanaka', 'takeshi', 'doctor', 'ren', 'kakou', 'host', 'oshi', 'tomo', 'kuma', 'sagi', 'jibun']
 for n in P:
     if os.path.exists(RAW + n + '.png'):
         im = Image.open(RAW + n + '.png').convert('RGB'); im.thumbnail((640, 960)); save(im, 'p_' + n, 78)

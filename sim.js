@@ -182,6 +182,8 @@
     if (S.n.skin + S.n.salon >= 9 && so < 50) return 'tomo'
     if (S.n.selfie >= 6 && so < 50) return 'kakou'
     if (S.n.makeup >= 7 && so < 50) return 'ren'
+    // 勉強と仕事ばかり（中身は高い・素地は低い）
+    if (na >= H && so < 50 && S.n.study + S.n.work >= 14) return 'shikaku'
     if (S.n.run >= 10 && so >= H - 10) return 'riku'
     if (S.n.cook >= 9 && so >= H - 15) return 'minato'
     if (so >= 50 || na >= 50) return 'tanaka'

@@ -130,7 +130,7 @@ for (const plan of plans) {
     return { seed: r.seed, taps: r.taps }
   })
 }
-await t('図鑑が17人で埋まる', async () => { const n = await p.evaluate(() => jmg.book().length); expect(n === 17, n); return n })
+await t('図鑑が18人で埋まる', async () => { const n = await p.evaluate(() => jmg.book().length); expect(n === 18, n); return n })
 // ---- 図鑑のトーク: 17人全員を本物のタップで開いて、8件以上・戻る
 const AFF = await p.evaluate(() => window.AFF_URL)
 await t('結果画面に PR は出ない（AFF_URL は空。女の子向けの行き先は未定）', async () => {
@@ -138,7 +138,7 @@ await t('結果画面に PR は出ない（AFF_URL は空。女の子向けの�
   expect(r.url === '' && r.hidden && r.vis === 0, JSON.stringify(r))
 })
 await p.click('#bBook2'); await p.waitForSelector('#book:not([hidden])')
-const chatShots = ['tomo', 'kujo', 'oshi', 'sagi']
+const chatShots = ['tomo', 'kujo', 'shikaku', 'sagi']
 for (const id of plans) {
   await t(`トーク「${id}」: タップで開く・8件以上・戻る`, async () => {
     const xy = await p.evaluate(i => jmg.cellXY(i), id); await p.mouse.click(xy.x, xy.y)
@@ -232,7 +232,7 @@ await t('遅れて効く: 走っても4日は何も変わらず（「何も変�
   await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay('run')
   const m = await q.evaluate(() => ({ soji: jmg.state().soji, chain: jmg.state().chain, b: document.querySelector('#bubble').textContent, miles: window.__miles }))
   await q.screenshot({ path: ROOT + '/shots/v-mile5.png' })
-  expect(seq.every(x => x.soji === s0 && /何も変わらない/.test(x.b)) && seq.map(x => x.chain).join() === '1,2,3,4' && seq[3].dots === 4 && m.chain === 5 && m.soji >= s0 + 10 && /丸が5個/.test(m.b) && m.miles === 1, JSON.stringify({ s0, seq, m })); return { s0, after: m.soji }
+  expect(seq.every(x => x.soji === s0 && /何も変わらない/.test(x.b)) && seq.map(x => x.chain).join() === '1,2,3,4' && seq[3].dots === 4 && m.chain === 5 && m.soji >= s0 + 10 && /まとめて効いた/.test(m.b) && !/\d/.test(m.b) && m.miles === 1, JSON.stringify({ s0, seq, m })); return { s0, after: m.soji }
 })
 await t('1日休むと、丸は切れずに「ためた分」が少し減るだけ', async () => {
   await clean(); await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay('cook'); await tapDay('study')
@@ -317,6 +317,10 @@ await t('すぐ効く方は序盤が気持ちいい（5日目までの見た目�
 await t('遊びの画面で同時に出る文字は2つまで（吹き出し・案内）', async () => {
   const n = await q.evaluate(() => ['#bubble', '#tip', '#memo'].filter(s => { const e = document.querySelector(s); return e && !e.hidden && e.textContent.trim() }).length)
   expect(n <= 2, n); return n
+})
+await t('いつ効くかは読めない（節目までの日数・節目の数を画面と文言に出さない）', async () => {
+  const r = await q.evaluate(() => { const ui = JSON.stringify(D.UI) + JSON.stringify(D.P.map(p => p.hint)) + document.body.innerText; return { days: /あと\d+日で効く|\d+ more to pay off|5・10|5, 10|丸が\d+個|\d+ in a row/.test(ui), dots: document.querySelectorAll('#dots i').length, num: !!document.querySelector('#hN') } })
+  expect(!r.days && r.dots === 7 && !r.num, JSON.stringify(r)); return r
 })
 await t('決め事: 整形は行動に無い・体重の数字を出さない', async () => {
   const r = await q.evaluate(() => { const acts = JSON.stringify(D.ACT) + JSON.stringify(D.UI); const all = JSON.stringify(D) + JSON.stringify(CHATS); return { seikei: /整形/.test(acts), kg: /\d+\s?(kg|キロ)/i.test(all), weight: /体重/.test(all) } })

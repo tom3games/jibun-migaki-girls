@@ -80,14 +80,13 @@
     habit()
     calPage()
   }
-  // カレンダーの丸（遅れて効く努力を続けた日）。いまの区切り（〜5・〜10・〜20・〜30）の分だけ丸を並べる
+  // カレンダーの丸（直近7日のうち、しんどい方をやった日）。いつ効くかは読めないようにする（2026-11-23 本人「いつかで効くってところのやついらん。わかったら萎える」）
   function habit(pop) {
-    const u = U(), nx = Sim.next5(D, S), pv = D.MILES.filter(m => m <= S.chain).pop() || 0
-    const seg = nx ? nx - pv : 1, got = nx ? S.chain - pv : 1
-    $('#dots').innerHTML = Array.from({ length: seg }, (_, i) => `<i class="${i < got ? 'on' : ''}${pop && i === got - 1 ? ' pop' : ''}"></i>`).join('')
-    $('#dots').style.setProperty('--n', seg)
-    $('#hN').textContent = S.chain
-    let t = nx ? u.toMile(nx - S.chain) : ''
+    const u = U(), N = 7, days = S.log.slice(-N)
+    while (days.length < N) days.unshift(null)
+    $('#dots').innerHTML = days.map((a, i) => `<i class="${a && Sim.isSlow(a) ? 'on' : ''}${pop && i === N - 1 ? ' pop' : ''}"></i>`).join('')
+    $('#dots').style.setProperty('--n', N)
+    let t = ''
     if (S.gap > 0 && (S.chain || S.pend.soji || S.pend.naka)) t = u.rest(S.gap)
     $('#hTxt').textContent = t
     $('#habit').classList.toggle('warn', S.gap >= 2 && S.chain > 0)
@@ -160,7 +159,7 @@
     else if (m.includes('slim')) { line = u.slim; cls = 'ev' }
     else if (m.includes('nap')) { line = u.nap; cls = 'bad' }
     else if (m.includes('sore') && Sim.isSlow(a)) line = u.sore
-    if (o.mile) { line = u.mile(o.mile); cls = 'mile'; Sfx('mile'); mileFx(o.gain) }
+    if (o.mile) { line = u.mile(); cls = 'mile'; Sfx('mile'); mileFx(o.gain) }
     if (o.ev && D.EVENTS[o.ev] && !D.EVENTS[o.ev].c) { line = tx(D.EVENTS[o.ev]); cls = 'ev'; Sfx('ev') }
     say(line, cls)
     if (tutStep < 4) { tutNext(); tut() }
@@ -172,9 +171,13 @@
   // 節目: ためていた分がまとめて効く。鏡と本棚が光って、上がった数字が大きく出る
   function mileFx(g) {
     const m = $('#mirror'); m.classList.remove('glow', 'big'); void m.offsetWidth; m.classList.add('glow', 'big')
-    if (g.soji) floats($('#mirror'), { soji: g.soji }, 'big')
-    if (g.naka) setTimeout(() => floats($('#oShelf'), { naka: g.naka }, 'big'), 350 * Math.max(FAST, 0.05))
     window.__miles = (window.__miles || 0) + 1
+    // 数字は鏡の上に1つだけ（素地と中身を1行に）
+    const u = U(), t = [g.soji ? `${u.soji}+${g.soji}` : '', g.naka ? `${u.naka}+${g.naka}` : ''].filter(Boolean).join(' ')
+    if (!t) return
+    const r = $('#mirror .mf').getBoundingClientRect(), f = document.createElement('div'); f.className = 'float big'; f.textContent = t
+    f.style.left = Math.max(90, Math.min(document.documentElement.clientWidth - 90, r.left + r.width / 2)) + 'px'; f.style.top = (r.top + r.height * 0.55) + 'px'
+    document.body.appendChild(f); setTimeout(() => f.remove(), 2000)
   }
   // マッチングアプリで会う日。結果を1枚のメモで見せる（つぎへ で閉じる）
   let dateDone = null
@@ -376,7 +379,17 @@
     x.fillText(`${u.groom} ${u.and} ${tx(p.name)}`, W / 2, py + ph + 92)
     x.fillStyle = '#d23a2a'; x.font = `34px ${HAND}`; x.fillText(`${u.rank(p.rank)}  ${tx(p.tag)}`, W / 2, py + ph + 140)
     // ランクの札（写真の右上）
-    { const rx = px + pw + 4, ry = py + 30; x.save(); x.translate(rx, ry); x.rotate(0.12); x.fillStyle = D.RANKS[p.rank]; x.fillRect(-78, -44, 156, 88); x.strokeStyle = '#fff'; x.lineWidth = 4; x.strokeRect(-70, -36, 140, 72); x.fillStyle = '#fff'; x.font = `${p.rank === 'EX' ? 40 : 60}px ${POP}`; x.textBaseline = 'middle'; x.fillText(p.rank === 'EX' ? (lang === 'ja' ? '番外' : 'EX') : p.rank, 0, 4); x.restore(); x.textBaseline = 'alphabetic' }
+    { const rx = px + pw + 4, ry = py + 34, rk = p.rank; x.save(); x.translate(rx, ry); x.rotate(0.12); x.fillStyle = D.RANKS[rk]; x.beginPath()
+      const poly = pts => { pts.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); x.closePath() }
+      if (rk === 'S') { for (let i = 0; i < 10; i++) { const r = i % 2 ? 34 : 78, t = -Math.PI / 2 + i * Math.PI / 5; i ? x.lineTo(Math.cos(t) * r, Math.sin(t) * r) : x.moveTo(Math.cos(t) * r, Math.sin(t) * r) } x.closePath() }
+      else if (rk === 'A') x.arc(0, 0, 58, 0, 7)
+      else if (rk === 'B') x.roundRect(-56, -56, 112, 112, 18)
+      else if (rk === 'C') poly([[0, -66], [66, 0], [0, 66], [-66, 0]])
+      else if (rk === 'D') poly([[-32, -58], [32, -58], [64, 0], [32, 58], [-32, 58], [-64, 0]])
+      else if (rk === 'E') x.rect(-52, -52, 104, 104)
+      else poly([[-90, -40], [90, -40], [74, 0], [90, 40], [-90, 40], [-74, 0]])
+      x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 4; if (rk === 'E') x.setLineDash([10, 8]); x.stroke(); x.setLineDash([])
+      x.fillStyle = rk === 'S' ? '#5a3b00' : '#fff'; x.font = `${rk === 'EX' ? 40 : rk === 'S' ? 52 : 60}px ${POP}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(rk === 'EX' ? (lang === 'ja' ? '番外' : 'EX') : rk, 0, rk === 'S' ? 8 : 4); x.restore(); x.textBaseline = 'alphabetic' }
     // 3つの値
     const st = [[u.soji, S.soji], [u.naka, S.naka], [u.chain, S.maxChain]], y0 = py + ph + 190
     st.forEach(([k, v], i) => { const cx = W / 2 + (i - 1) * 250; x.fillStyle = '#7a6550'; x.font = `30px ${HAND}`; x.fillText(k, cx, y0); x.fillStyle = '#2a1d14'; x.font = `56px ${POP}`; x.fillText(v, cx, y0 + 60) })
