@@ -1,0 +1,558 @@
+// 自分磨き30日 女の子編。部屋の物をタップして1日を使い、30日後にドアの前に誰かが来る
+// すぐ効く努力（下の段・ドレッサー）と、遅れて効く努力（上の段・本棚。続けた日数の節目でまとめて効く）
+;(function () {
+  window.__jsUp = true
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)]
+  const store = { get(k) { try { return localStorage.getItem(k) } catch (e) { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch (e) {} } }
+  let lang = store.get('jmg_lang') || ((navigator.language || 'ja').startsWith('ja') ? 'ja' : 'en')
+  const U = () => D.UI[lang], tx = o => (o ? (o[lang] ?? o.ja) : '')
+  const touch = matchMedia('(pointer:coarse)').matches
+  const V = 'v=1'
+  let FAST = 1   // 検証で待ち時間を縮める倍率
+  const wait = ms => new Promise(r => setTimeout(r, ms * FAST))
+  const yen = n => (lang === 'ja' ? '' : '¥') + n.toLocaleString('ja-JP') + (lang === 'ja' ? '円' : '')
+
+  // ---- 音（全部録音素材。出所は CREDITS.md）
+  try { Snd.muted = store.get('jmg_mute') === '1' } catch (e) {}
+  Snd.def({
+    clank: ['snd/clank1.mp3', 'snd/clank2.mp3', 'snd/clank3.mp3'], tear: ['snd/tear1.mp3', 'snd/tear2.mp3', 'snd/tear3.mp3'], book: ['snd/book1.mp3', 'snd/book2.mp3'],
+    coin: ['snd/coin1.mp3', 'snd/coin2.mp3'], clink: ['snd/clink1.mp3', 'snd/clink2.mp3'], meow: 'snd/meow.mp3',
+    swish: ['snd/swish1.mp3', 'snd/swish2.mp3'], pop: ['snd/pop1.mp3', 'snd/pop2.mp3'], applause: 'snd/applause9.mp3', snore: 'snd/snore.mp3', drum: 'snd/drumroll.mp3',
+    win: 'snd/win.mp3', win2: 'snd/win2.mp3', lose: 'snd/lose.mp3', tap: 'snd/tap.mp3', stamp: 'snd/stamp.mp3',
+    knock: ['snd/knock1.mp3', 'snd/knock2.mp3', 'snd/knock3.mp3'], bell: 'snd/bell.mp3', creak: 'snd/creak.mp3', dopen: 'snd/dooropen.mp3', dclose: 'snd/doorclose.mp3',
+    step: ['snd/step1.mp3', 'snd/step2.mp3', 'snd/step3.mp3'], chop: 'snd/chop1.mp3', pot: 'snd/pot1.mp3', dish: 'snd/dish1.mp3',
+  })
+  const CUE = {
+    run: [['step', { vol: 0.8 }], ['step', { vol: 0.7, delay: 0.22 }], ['step', { vol: 0.7, delay: 0.44 }]], cook: [['chop', { vol: 0.8 }], ['chop', { vol: 0.7, delay: 0.18 }], ['pot', { vol: 0.5, delay: 0.42 }]],
+    work: [['book', { vol: 0.6 }], ['coin', { vol: 0.6, delay: 0.25 }]], sleep: [['snore', { vol: 0.5 }]], study: [['book', { vol: 0.8 }]],
+    makeup: [['pop', { vol: 0.55 }], ['swish', { vol: 0.4, delay: 0.15 }]], skin: [['pop', { vol: 0.6 }], ['pop', { vol: 0.45, delay: 0.15 }]],
+    salon: [['swish', { vol: 0.7 }], ['swish', { vol: 0.6, delay: 0.14 }], ['coin', { vol: 0.5, delay: 0.3 }]], selfie: [['tap', { vol: 0.6, rate: 1.4 }], ['pop', { vol: 0.5, rate: 1.3, delay: 0.2 }]],
+    oshi: [['clink', { vol: 0.6 }], ['coin', { vol: 0.5, delay: 0.2 }]], fast: [['dish', { vol: 0.5, rate: 0.9 }]],
+    mile: [['win2', { vol: 0.8 }], ['applause', { vol: 0.35, delay: 0.3 }]], reset: [['lose', { vol: 0.6 }]], date: [['bell', { vol: 0.5, jitter: 0 }]],
+    tear: [['tear', { vol: 0.6 }]], ev: [['pop', { vol: 0.5, rate: 0.8 }]], meow: [['meow', { vol: 0.8 }]], bad: [['clank', { vol: 0.7, rate: 0.7 }], ['stamp', { vol: 0.6, delay: 0.1 }]],
+    tap: [['tap', { vol: 0.45, jitter: 0 }]], msg: [['pop', { vol: 0.35, rate: 1.2 }]], drum: [['drum', { vol: 0.85 }]], stamp: [['stamp', { vol: 1 }]],
+    win: [['win', { vol: 0.8 }], ['applause', { vol: 0.45, delay: 0.3 }]], mid: [['win2', { vol: 0.8 }]], lose: [['lose', { vol: 0.8 }]],
+    knock: [['knock', { vol: 0.9 }]], bell: [['bell', { vol: 0.7, jitter: 0 }]], creak: [['creak', { vol: 0.6 }]], dopen: [['dopen', { vol: 0.85 }]], dclose: [['dclose', { vol: 0.7 }]], peep: [['tap', { vol: 0.3, rate: 0.7 }]], voice: [['pop', { vol: 0.3, rate: 0.9 }]],
+  }
+  window.__sfxCalls = {}
+  const Sfx = n => { window.__sfxCalls[n] = (window.__sfxCalls[n] || 0) + 1; for (const [k, o] of CUE[n] || []) Snd.play(k, o) }
+  const bed = on => { if (on) { Snd.loop('amb', 'snd/amb.mp3', 0.22); Snd.loop('bgm', 'snd/bgm.mp3', 0.16) } else { Snd.loop('bgm', null); Snd.loop('amb', 'snd/amb.mp3', 0.12) } }
+  const muteIcon = () => { $('#icoWave').style.display = Snd.muted ? 'none' : '' }
+
+  // ---- 状態
+  let S = null, busy = false, seedNext = null, tutStep = 0, curMe = null, eve = false   // eve: 行動のあと、日めくりをめくるまでは「その日の夜」（盛りはまだ落ちていない）
+  const book = new Set((store.get('jmg_book') || '').split(',').filter(Boolean))
+  const PMAP = Object.fromEntries(D.P.map(p => [p.id, p]))
+  const TIER = { S: 5, A: 4, B: 3, C: 2, D: 1, E: 0, EX: 4 }
+  const rankTag = r => `<span class="rk rk${r}">${r === 'EX' ? (lang === 'ja' ? '番外' : 'EX') : r}</span>`
+
+  function show(id) { for (const v of $$('main.view')) v.hidden = v.id !== id }
+
+  // ---- 画面: 部屋
+  function stage(v, cuts) { let i = 0; while (i < cuts.length && v >= cuts[i]) i++; return i }
+  function render() {
+    const u = U()
+    $('#hpLab').textContent = u.hp; $('#hpNum').textContent = S.hp
+    $('#hpBar').innerHTML = Array.from({ length: 10 }, (_, i) => `<i class="${i < Math.ceil(S.hp / 10) ? '' : 'off'}"></i>`).join('')
+    $('#hpNote').classList.toggle('low', S.hp < 30)
+    $('#money').textContent = yen(S.money)
+    const mori = eve && S.moriEve != null ? S.moriEve : S.mori
+    $('#gNaka').textContent = `${u.naka} ${S.naka}`; $('#gSoji').textContent = `${u.soji} ${S.soji + S.temp}`; $('#gMori').textContent = `${u.mori} ${mori}`
+    $('#shelfImg').src = `img/shelf${stage(S.naka, [35, 55, 75])}.webp?${V}`
+    $('#dressImg').src = `img/dress${stage(S.n.makeup + S.n.skin + S.n.salon, [3, 7, 12])}.webp?${V}`
+    // 鏡の自分は値・病院・断食・疲れ・最近の過ごし方で15通り。変わった日は鏡が光って一言出る
+    const me = Sim.mirror(D, S, eve)
+    if (me !== curMe) {
+      $('#meImg').src = `img/${me}.webp?${V}`
+      if (curMe) { const m = $('#mirror'), n = $('#meNote'); m.classList.remove('glow'); void m.offsetWidth; m.classList.add('glow'); n.textContent = tx(D.ME[me]); n.classList.remove('in'); void n.offsetWidth; n.classList.add('in'); window.__meChanges = (window.__meChanges || 0) + 1 }
+      curMe = me
+    }
+    const dl = Sim.deal(D, S)
+    for (const b of $$('.obj[data-a]')) {
+      const a = b.dataset.a, A = D.ACT[a], x2 = dl && dl.act === a, c = Sim.cost(D, S, a)
+      const sub = c < 0 ? yen(-c) : D.SUB[a] ? tx(D.SUB[a]) : ''
+      b.querySelector('.lab').innerHTML = `${tx(A)}<small>${sub}</small>`
+      b.classList.toggle('deal', !!x2)
+      b.querySelector('.lab').dataset.deal = x2 ? tx(dl) : ''
+      b.classList.toggle('poor', c < 0 && S.money + c < 0)
+      b.setAttribute('aria-label', tx(A))
+    }
+    habit()
+    calPage()
+  }
+  // カレンダーの丸（遅れて効く努力を続けた日）。いまの区切り（〜5・〜10・〜20・〜30）の分だけ丸を並べる
+  function habit(pop) {
+    const u = U(), nx = Sim.next5(D, S), pv = D.MILES.filter(m => m <= S.chain).pop() || 0
+    const seg = nx ? nx - pv : 1, got = nx ? S.chain - pv : 1
+    $('#dots').innerHTML = Array.from({ length: seg }, (_, i) => `<i class="${i < got ? 'on' : ''}${pop && i === got - 1 ? ' pop' : ''}"></i>`).join('')
+    $('#dots').style.setProperty('--n', seg)
+    $('#hN').textContent = S.chain
+    let t = nx ? u.toMile(nx - S.chain) : ''
+    if (S.gap > 0 && (S.chain || S.pend.soji || S.pend.naka)) t = u.rest(S.gap)
+    $('#hTxt').textContent = t
+    $('#habit').classList.toggle('warn', S.gap >= 2 && S.chain > 0)
+    const dd = D.DATES.find(d => d >= S.day)
+    $('#dateIn').textContent = dd && dd > S.day && dd - S.day <= 3 ? u.dateSoon(dd - S.day) : ''
+  }
+  function calPage(fly) {
+    const u = U(), left = D.DAYS - S.day + 1, dl = Sim.deal(D, S)
+    const el = document.createElement('div'); el.className = 'cpage' + (left === 1 ? ' last' : '')
+    const meet = D.DATES.includes(S.day)
+    el.innerHTML = `<small>${lang === 'ja' ? 'あと' : 'days left'}</small><strong>${left}</strong><em>${meet ? U().dateDay : dl ? tx(dl) : ''}</em>`
+    el.classList.toggle('meet', meet)
+    const cal = $('#cal'), old = cal.querySelector('.cpage:not(.fly)')
+    if (old && fly) { old.classList.add('fly'); setTimeout(() => old.remove(), 600 * Math.max(FAST, 0.05) + 50); cal.insertBefore(el, old) }
+    else { cal.innerHTML = ''; cal.appendChild(el) }
+  }
+  function say(t, cls = '') { const b = $('#bubble'); b.textContent = t; b.className = cls }
+  function floats(el, d, cls = '') {
+    const r = (el.querySelector('img') || el).getBoundingClientRect(), u = U(); let k = 0
+    for (const key of ['soji', 'naka', 'mori', 'money', 'hp']) {
+      const v = d[key]; if (!v) continue
+      const f = document.createElement('div'); f.className = 'float' + (v < 0 ? ' neg' : '') + (cls ? ' ' + cls : '')
+      f.textContent = (key === 'money' ? (v > 0 ? '+' : '-') + yen(Math.abs(v)) : `${u[key]}${v > 0 ? '+' : ''}${v}`)
+      const W = document.documentElement.clientWidth, hw = cls ? 62 : 44
+      f.style.left = Math.max(hw, Math.min(W - hw, r.left + r.width / 2)) + 'px'; f.style.top = (r.top + r.height * (cls ? 0.6 : 0.35) - k * (cls ? 34 : 24)) + 'px'; k++
+      document.body.appendChild(f); setTimeout(() => f.remove(), cls ? 2000 : 1200)
+    }
+  }
+  // 最初の説明4つ。2026-11-11 本人「最初の解説の文字が出てる時間が長すぎる」: 前は1つずつ「物を押すまで」出っぱなしで、4回押すまで消えなかった。
+  // いまは読める長さ（1文字0.11秒＋0.9秒、1.8〜2.8秒）で自動で次へ進み、押せばすぐ次。window.__tipLog に出ていた時間を残す
+  let tutTimer = 0, tutAt = 0
+  const tipMs = t => Math.min(2800, Math.max(1800, 900 + (lang === 'ja' ? [...t].length * 110 : t.length * 45)))
+  function tutNext() { clearTimeout(tutTimer); if (tutStep >= 4) return; if (tutAt) (window.__tipLog = window.__tipLog || []).push(Math.round(performance.now() - tutAt)); tutAt = 0; tutStep++; if (tutStep >= 4) store.set('jmg_tut', '1') }
+  function tut() {
+    const u = U(), h = $('#hand'), tip = $('#tip')
+    clearTimeout(tutTimer)
+    if (tutStep >= 4 || store.get('jmg_tut') === '1') { h.hidden = true; tip.hidden = true; return }
+    const T = [[u.tut1, '#oRun'], [u.tut2, '#habit'], [u.tut3, '#hpNote'], [u.tut4, '#cal']][tutStep]
+    let t = T[0]; if (!touch) t = t.replace('タップ', 'クリック').replace('Tap', 'Click')
+    tip.textContent = t; tip.hidden = false; if (!tutAt) tutAt = performance.now()
+    const r = $(T[1]).getBoundingClientRect(); h.hidden = false; h.style.left = (r.left + r.width / 2 - 8) + 'px'; h.style.top = (r.top + r.height * 0.45) + 'px'
+    tutTimer = setTimeout(() => { if ($('#vPlay').hidden) return; tutNext(); tut() }, tipMs(t) * FAST)
+  }
+
+  // ---- 遊び
+  function start() {
+    Snd.init(); bed(true)
+    const seed = seedNext ?? (Date.now() % 1e9); seedNext = null
+    rvRun++; RV = null; drum(false)
+    S = Sim.create(D, seed); busy = false; eve = false; $('#memo').hidden = true; dateDone = null; tutStep = 0; tutAt = 0; curMe = null; $('#meNote').classList.remove('in')
+    show('vPlay'); render(); say(lang === 'ja' ? '今日から、自分を変える' : 'Today, I start changing')
+    $('#mirror').classList.remove('glow'); requestAnimationFrame(tut)
+    window.TM && TM.start()
+  }
+  async function doAct(a, btn) {
+    if (busy || !S || S.done || S.choice) return
+    const u = U(), o = Sim.act(D, S, a)
+    if (!o.ok) { if (o.why === 'money') { say(u.noMoney, 'bad'); btn.classList.remove('bump'); void btn.offsetWidth; btn.classList.add('bump') } return }
+    busy = true
+    Sfx(a); btn.classList.remove('bump'); void btn.offsetWidth; btn.classList.add('bump')
+    // 遅れて効く方は、節目の日以外は何も出さない（数字が動かない）
+    const d = Object.assign({}, o.d); if (o.gain) { d.soji -= o.gain.soji; d.naka -= o.gain.naka }
+    floats(btn, d)
+    if (o.d.mori > 0 || o.d.soji > 0) { const m = $('#mirror'); m.classList.remove('glow'); void m.offsetWidth; m.classList.add('glow') }
+    let line = D.LINES[a][lang][o.line], cls = Sim.isSlow(a) ? 'slow' : ''
+    const m = o.msgs
+    if (m.includes('hosp')) { line = u.hosp; cls = 'bad'; Sfx('bad') }
+    else if (m.includes('faint')) { line = u.faint; cls = 'bad'; Sfx('bad') }
+    else if (m.includes('reset')) { line = u.reset; cls = 'bad'; Sfx('reset') }
+    else if (m.includes('slim')) { line = u.slim; cls = 'ev' }
+    else if (m.includes('nap')) { line = u.nap; cls = 'bad' }
+    else if (m.includes('sore') && Sim.isSlow(a)) line = u.sore
+    if (o.mile) { line = u.mile(o.mile); cls = 'mile'; Sfx('mile'); mileFx(o.gain) }
+    if (o.ev && D.EVENTS[o.ev] && !D.EVENTS[o.ev].c) { line = tx(D.EVENTS[o.ev]); cls = 'ev'; Sfx('ev') }
+    say(line, cls)
+    if (tutStep < 4) { tutNext(); tut() }
+    eve = true; render(); habit(Sim.isSlow(a))
+    if (S.choice) { await wait(500); openMemo(); busy = false; return }
+    if (o.date) { await wait(650); await dateCard(o.date) }
+    await afterDay(o)
+  }
+  // 節目: ためていた分がまとめて効く。鏡と本棚が光って、上がった数字が大きく出る
+  function mileFx(g) {
+    const m = $('#mirror'); m.classList.remove('glow', 'big'); void m.offsetWidth; m.classList.add('glow', 'big')
+    if (g.soji) floats($('#mirror'), { soji: g.soji }, 'big')
+    if (g.naka) setTimeout(() => floats($('#oShelf'), { naka: g.naka }, 'big'), 350 * Math.max(FAST, 0.05))
+    window.__miles = (window.__miles || 0) + 1
+  }
+  // マッチングアプリで会う日。結果を1枚のメモで見せる（つぎへ で閉じる）
+  let dateDone = null
+  function dateCard(res) {
+    window.__dates = (window.__dates || []).concat(res)
+    $('#memoHead').textContent = tx(D.DATE.head); $('#memoHead').hidden = false
+    $('#memoTxt').textContent = tx(D.DATE[res]); $('#bC0').textContent = tx(D.DATE.ok1); $('#bC1').hidden = true
+    $('#memoCard').className = 'date ' + res
+    $('#memo').hidden = false; Sfx('date'); Sfx(res === 'great' ? 'mid' : res === 'ok' ? 'tap' : 'lose')
+    return new Promise(r => { dateDone = r })
+  }
+  async function afterDay(o) {
+    await wait(380)
+    eve = false
+    Sfx('tear'); calPage(true)
+    for (let i = 0; i < (o.skipped || 0); i++) { await wait(450); Sfx('tear'); calPage(true) }
+    if (o.moriLost > 3) floats($('#oDress'), { mori: -o.moriLost })
+    if (o.missed) say(tx(D.DATE.miss), 'bad')
+    if (o.rebound) { say(U().rebound, 'bad'); Sfx('bad') }
+    if (o.final) say(U().final, 'mile')
+    render(); tut()
+    if (S.done) { await wait(o.final ? 1400 : 700); busy = false; return reveal() }
+    busy = false
+  }
+  function openMemo() {
+    const E = D.EVENTS[S.choice]
+    $('#memoHead').hidden = true; $('#bC1').hidden = false; $('#memoCard').className = ''
+    $('#memoTxt').textContent = tx(E); $('#bC0').textContent = tx(E.c[0]); $('#bC1').textContent = tx(E.c[1])
+    $('#memo').hidden = false
+    if (S.choice === 'cat') Sfx('meow'); else Sfx('ev')
+  }
+  async function choose(i) {
+    if (dateDone) { const r = dateDone; dateDone = null; $('#memo').hidden = true; Sfx('tap'); r(); return }
+    if (!S || !S.choice) return
+    if (busy) return
+    busy = true
+    const ev = S.choice
+    $('#memo').hidden = true
+    const r = Sim.choose(D, S, i)
+    if (r.broke) say(U().noMoney, 'bad')
+    else { say(tx(r.res), 'ev'); floats($('#mirror'), r.d); if (ev === 'cat' && i === 0) Sfx('meow') }
+    render()
+    await afterDay(r)
+  }
+
+  // ---- 30日後: ドアは自分の手で開ける（2026-11-12 本人「扉を自分の手で開くみたいな感じに」）
+  // 前は3.6秒で勝手に開いた。いまはノブをつかんで左へ引く（なぞった分だけ開く）。途中で離すと半分より手前なら閉じ戻り、先なら一気に開く。
+  // タップだけなら、1回目で少し開いて止まり（すき間から一言）、2回目で開く。のぞき穴を押すとぼやけた影だけ見える。
+  // 待っている間はドラムロール。ノックが鳴り、すき間から光と影が漏れる。開け切るまで恋人の絵はぼかして暗くしておく。
+  // 時間は全部 performance.now() で数える（FAST は検証で縮める倍率）
+  const pnow = () => performance.now()
+  const pwait = ms => new Promise(r => { const end = pnow() + ms * FAST; const f = () => { if (pnow() >= end) r(); else requestAnimationFrame(f) }; requestAnimationFrame(f) })
+  const DOOR_MAX = 104, AJAR = 0.32
+  let RV = null, rvRun = 0
+  function setDoor(p) {
+    const d = $('#door'); RV.p = Math.max(0, Math.min(1, p))
+    const h = Math.round(($('#stage').clientWidth || 300) / 2)   // 遠近の中心を舞台のまん中に（ちょうつがい側だと、すき間が扉の手前の縁に隠れる）
+    d.style.transform = `translateX(${h}px) perspective(900px) translateX(${-h}px) rotateY(${(-DOOR_MAX * RV.p).toFixed(2)}deg)`; d.style.setProperty('--p', RV.p.toFixed(3))
+    $('#glow').style.opacity = String(0.35 + Math.min(1, RV.p * 3) * 0.65); $('#leaks').style.opacity = String(Math.max(0, 1 - RV.p * 6))
+    if (RV.p > 0.05 && !RV.creaked) { RV.creaked = true; Sfx('creak') }
+    if (RV.p < 0.02) RV.creaked = false
+    if (RV.p >= 0.12 && !RV.peeked && !RV.opened) peekLine()
+  }
+  function animDoor(to, ms) {
+    const run = rvRun, from = RV.p, t0 = pnow(), dur = Math.max(1, ms * FAST); RV.anim = true
+    return new Promise(r => {
+      const f = () => { if (run !== rvRun) return r(); const k = Math.min(1, (pnow() - t0) / dur), e = 1 - Math.pow(1 - k, 3); setDoor(from + (to - from) * e); if (k < 1) requestAnimationFrame(f); else { RV.anim = false; r() } }
+      requestAnimationFrame(f)
+    })
+  }
+  function rvSay(key) { RV.txt = key; $('#rvText').textContent = U()[key] }
+  function hint(mode) { $('#rvHand').className = mode || '' }
+  function knock() {
+    if (!RV || RV.opened) return
+    RV.knocks++; RV.lastAct = pnow(); Sfx('knock')
+    const d = $('#door'), fx = $('#knockFx'); d.classList.remove('knock'); void d.offsetWidth; d.classList.add('knock')
+    fx.textContent = U().knock; fx.classList.remove('in'); void fx.offsetWidth; fx.classList.add('in')
+  }
+  function peekLine() {
+    RV.peeked = true; const el = $('#peekSay'); el.textContent = tx(D.PEEK[S.who]); el.classList.add('in'); Sfx('voice')
+    window.__peekSaid = (window.__peekSaid || 0) + 1
+  }
+  async function peep() {
+    if (!RV || !RV.ready || RV.opened || RV.peeping) return
+    RV.peeping = true; RV.peeps++; RV.lastAct = pnow(); Sfx('peep')
+    const pp = $('#peep'); pp.style.setProperty('--z', String(1.05 + Math.min(RV.peeps, 3) * 0.18)); pp.classList.add('in'); $('#stage').classList.add('peeping')
+    window.__peeps = RV.peeps
+    await pwait(1500); pp.classList.remove('in'); $('#stage').classList.remove('peeping'); await pwait(250); if (RV) RV.peeping = false
+  }
+  async function reveal() {
+    const who = Sim.judge(D, S), p = PMAP[who], run = ++rvRun
+    S.who = who; S.ttl = Sim.title(D, S)
+    window.TM && TM.end(TIER[p.rank], TIER[p.rank] >= 3)
+    const isNew = !book.has(who); book.add(who); store.set('jmg_book', [...book].join(','))
+    show('vReveal'); bed(false); for (const f of $$('.float')) f.remove(); $('#hand').hidden = true
+    RV = { p: 0, ready: false, opened: false, anim: false, drag: false, peeked: false, creaked: false, knocks: 0, peeps: 0, peeping: false, lastAct: pnow(), isNew, txt: '' }
+    window.__doorOpened = false; window.__peekSaid = 0; window.__peeps = 0
+    const door = $('#door'), stg = $('#stage')
+    door.className = ''; stg.className = ''; setDoor(0); RV.creaked = false
+    for (const id of ['#nameTag', '#say', '#peekSay', '#peep', '#knockFx']) $(id).className = ''
+    $('#epi').textContent = ''; $('#bNext').hidden = true; hint('')
+    const src = `img/p_${who}.webp?${V}`
+    $('#portrait').className = 'veil'; $('#portrait').src = src; $('#peepImg').src = src
+    door.setAttribute('aria-label', U().open)
+    rvSay('night'); await pwait(1500); if (run !== rvRun) return
+    rvSay('bell'); Sfx('bell'); await pwait(1100); if (run !== rvRun) return
+    rvSay('door'); drum(true); door.classList.add('shake'); await pwait(1500); if (run !== rvRun) return
+    door.classList.remove('shake'); knock(); await pwait(700); if (run !== rvRun || RV.opened) return
+    RV.ready = true; RV.lastAct = pnow(); rvSay('open'); hint('pull')
+    // 開けずに待っていると、もう一度ノックされる（2回まで）
+    const idle = () => { if (run !== rvRun || !RV || RV.opened) return; if (!RV.drag && !RV.anim && !RV.peeping && RV.knocks < 3 && pnow() - RV.lastAct > 5000 * FAST) knock(); requestAnimationFrame(idle) }
+    requestAnimationFrame(idle)
+  }
+  function drum(on) { if (on) { window.__sfxCalls.drum = (window.__sfxCalls.drum || 0) + 1; Snd.loop('drum', 'snd/drumroll.mp3', 0.45, 0.2) } else if (Snd.loops && Snd.loops.drum) Snd.loop('drum', null, 0, 0.25) }
+  async function openAll() {
+    if (!RV || RV.opened) return
+    const run = rvRun, u = U(), p = PMAP[S.who]; RV.opened = true; hint(''); $('#door').classList.remove('shake'); $('#stage').classList.remove('grab')
+    $('#peekSay').classList.remove('in'); $('#peep').classList.remove('in')
+    Sfx('dopen'); drum(false)
+    await animDoor(1, 520 * (1 - RV.p) + 180); if (run !== rvRun) return
+    $('#door').classList.add('open'); $('#stage').classList.add('opened'); $('#portrait').className = ''
+    window.__doorOpened = true
+    const fl = $('#flash'); fl.style.transition = 'none'; fl.style.opacity = 0.9; requestAnimationFrame(() => { fl.style.transition = 'opacity .6s'; fl.style.opacity = 0 })
+    rvSay('who')
+    await pwait(900); if (run !== rvRun) return
+    const tr = TIER[p.rank]; Sfx(tr >= 4 ? 'win' : tr >= 2 ? 'mid' : 'lose'); Sfx('stamp')
+    const tag = $('#nameTag'), sayEl = $('#say')
+    tag.innerHTML = `${rankTag(p.rank)}${tx(p.name)}<small>${tx(p.tag)}${RV.isNew ? (lang === 'ja' ? '・はじめて' : ' / NEW') : ''}</small>`; tag.classList.add('in')
+    await pwait(700); if (run !== rvRun) return
+    sayEl.textContent = tx(p.say); sayEl.classList.add('in')
+    await pwait(900); if (run !== rvRun) return
+    $('#epi').textContent = tx(p.epi)
+    $('#bNext').textContent = u.next; $('#bNext').hidden = false
+  }
+  // 指・マウスでドアを扱う。動かさずに離したら「タップ」
+  function doorTap(onEye) {
+    if (!RV || !RV.ready || RV.opened || RV.anim) return
+    RV.lastAct = pnow()
+    if (onEye && RV.p < 0.05) return peep()
+    if (RV.p < AJAR * 0.6) { hint('tap'); animDoor(AJAR, 420) }
+    else openAll()
+  }
+  {
+    // ドアだけでなく、すき間（舞台全体）をつかんでも動かせる
+    const door = $('#door'), stg = $('#stage'); let sx = 0, sy = 0, p0 = 0, moved = false, pid = null, eye = false
+    stg.addEventListener('pointerdown', e => {
+      if (!RV || !RV.ready || RV.opened || RV.anim || pid !== null) return
+      pid = e.pointerId; sx = e.clientX; sy = e.clientY; p0 = RV.p; moved = false; eye = !!(e.target.closest && e.target.closest('.eye'))
+      try { stg.setPointerCapture(pid) } catch (er) {}
+      e.preventDefault()
+    })
+    stg.addEventListener('pointermove', e => {
+      if (e.pointerId !== pid || !RV || RV.opened) return
+      const dx = e.clientX - sx, dy = e.clientY - sy
+      if (!moved && Math.hypot(dx, dy) > 8) { moved = true; RV.drag = true; hint(''); stg.classList.add('grab') }
+      if (!moved) return
+      RV.lastAct = pnow()
+      setDoor(p0 + (-dx) / ($('#stage').clientWidth * 0.85 || 300))
+    })
+    const up = e => {
+      if (e.pointerId !== pid) return
+      pid = null; stg.classList.remove('grab'); if (!RV) return
+      if (!moved) return doorTap(eye)
+      RV.drag = false
+      if (RV.opened) return
+      if (RV.p >= 0.5) openAll()
+      else {
+        const was = RV.p
+        animDoor(0, 260 + was * 500).then(() => { if (!RV || RV.opened) return; if (was > 0.04) Sfx('dclose'); $('#peekSay').classList.remove('in'); RV.peeked = false; hint('pull') })
+      }
+    }
+    stg.addEventListener('pointerup', up); stg.addEventListener('pointercancel', up)
+    door.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doorTap(false) } })
+  }
+
+  // ---- 結果: 招待状
+  function loadImg(src) { return new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src }) }
+  function wrapText(x, t, maxW) { const out = []; let cur = ''; for (const ch of (lang === 'ja' ? [...t] : t.split(/(?<= )/))) { if (x.measureText(cur + ch).width > maxW && cur) { out.push(cur); cur = ch.trimStart() } else cur += ch } if (cur) out.push(cur); return out }
+  async function result() {
+    show('vEnd'); window.__jmgCardDone = false; const u = U(), p = PMAP[S.who]
+    for (const b of ['#bAgain', '#bSave', '#bPost']) $(b).disabled = true
+    const c = $('#card'), x = c.getContext('2d'), W = 1080, H = 1350
+    x.fillStyle = '#fbf6ea'; x.fillRect(0, 0, W, H)
+    x.strokeStyle = '#b8955a'; x.lineWidth = 4; x.strokeRect(34, 34, W - 68, H - 68); x.lineWidth = 1.5; x.strokeRect(48, 48, W - 96, H - 96)
+    const POP = '"RocknRoll One", sans-serif', HAND = '"Yusei Magic", sans-serif'
+    try { await document.fonts.load(`40px ${POP}`); await document.fonts.load(`40px ${HAND}`) } catch (e) {}
+    x.textAlign = 'center'; x.fillStyle = '#b8955a'; x.font = `34px ${HAND}`; x.fillText(lang === 'ja' ? 'Wedding Invitation' : 'You are invited', W / 2, 112)
+    x.fillStyle = '#2a1d14'; x.font = `60px ${POP}`; x.fillText(u.invite, W / 2, 186)
+    // 写真
+    const img = await loadImg(`img/p_${S.who}.webp?${V}`)
+    const pw = 470, ph = 600, px = (W - pw) / 2, py = 222
+    x.save(); x.shadowColor = 'rgba(0,0,0,.25)'; x.shadowBlur = 20; x.fillStyle = '#fff'; x.fillRect(px - 16, py - 16, pw + 32, ph + 32); x.restore()
+    if (img) { const s = Math.max(pw / img.width, ph / img.height), sw = pw / s, sh = ph / s; x.drawImage(img, (img.width - sw) / 2, 0, sw, sh, px, py, pw, ph) }
+    // 30日目の自分（鏡の絵）を左上に丸く
+    const meI = await loadImg(`img/${Sim.mirror(D, S)}.webp?${V}`)
+    if (meI) { const cx = px + 18, cy = py + 70, r = 92; x.save(); x.shadowColor = 'rgba(0,0,0,.3)'; x.shadowBlur = 14; x.fillStyle = '#fff'; x.beginPath(); x.arc(cx, cy, r + 10, 0, 7); x.fill(); x.restore(); x.save(); x.beginPath(); x.arc(cx, cy, r, 0, 7); x.clip(); x.drawImage(meI, cx - r, cy - r, r * 2, r * 2); x.restore() }
+    // 名前
+    x.fillStyle = '#2a1d14'; x.font = `54px ${POP}`
+    x.fillText(`${u.groom} ${u.and} ${tx(p.name)}`, W / 2, py + ph + 92)
+    x.fillStyle = '#d23a2a'; x.font = `34px ${HAND}`; x.fillText(`${u.rank(p.rank)}  ${tx(p.tag)}`, W / 2, py + ph + 140)
+    // ランクの札（写真の右上）
+    { const rx = px + pw + 4, ry = py + 30; x.save(); x.translate(rx, ry); x.rotate(0.12); x.fillStyle = D.RANKS[p.rank]; x.fillRect(-78, -44, 156, 88); x.strokeStyle = '#fff'; x.lineWidth = 4; x.strokeRect(-70, -36, 140, 72); x.fillStyle = '#fff'; x.font = `${p.rank === 'EX' ? 40 : 60}px ${POP}`; x.textBaseline = 'middle'; x.fillText(p.rank === 'EX' ? (lang === 'ja' ? '番外' : 'EX') : p.rank, 0, 4); x.restore(); x.textBaseline = 'alphabetic' }
+    // 3つの値
+    const st = [[u.soji, S.soji], [u.naka, S.naka], [u.chain, S.maxChain]], y0 = py + ph + 190
+    st.forEach(([k, v], i) => { const cx = W / 2 + (i - 1) * 250; x.fillStyle = '#7a6550'; x.font = `30px ${HAND}`; x.fillText(k, cx, y0); x.fillStyle = '#2a1d14'; x.font = `56px ${POP}`; x.fillText(v, cx, y0 + 60) })
+    // 称号と結末
+    x.fillStyle = '#7a6550'; x.font = `30px ${HAND}`; x.fillText(`${lang === 'ja' ? '称号' : 'Title'}: ${tx(D.TITLES[S.ttl])}`, W / 2, y0 + 122)
+    x.fillStyle = '#2a1d14'; x.font = `38px ${HAND}`
+    wrapText(x, tx(p.epi), 900).slice(0, 2).forEach((l, i) => x.fillText(l, W / 2, y0 + 172 + i * 46))
+    x.fillStyle = '#b8955a'; x.font = `26px ${HAND}`; x.fillText(lang === 'ja' ? '自分磨き30日 女の子編' : '30-Day Glow-Up: Her Story', W / 2, H - 60)
+    for (const b of ['#bAgain', '#bSave', '#bPost']) $(b).disabled = false
+    aff()
+    window.__jmgCardDone = true
+  }
+
+  // ---- 図鑑
+  function openBook(sel) {
+    const u = U(), g = $('#grid')
+    $('#bookH').textContent = u.zukan; $('#bookN').textContent = u.unlocked(book.size, D.P.length); $('#bookClose').textContent = u.back
+    g.innerHTML = D.P.map(p => book.has(p.id) ? `<button class="cell" data-id="${p.id}"><img src="img/t_${p.id}.webp?${V}" alt=""><b>${tx(p.name)}</b>${rankTag(p.rank)}</button>` : `<button class="cell lock" data-id="${p.id}">?${rankTag(p.rank)}</button>`).join('')
+    $('#bookInfo').textContent = book.size ? u.tapChat : ''
+    $('#book').hidden = false
+    if (sel) info(sel)
+  }
+  function info(id) {
+    const p = PMAP[id], u = U()
+    for (const c of $$('.cell')) c.classList.toggle('sel', c.dataset.id === id)
+    $('#bookInfo').textContent = book.has(id) ? `${u.rank(p.rank)} ${tx(p.name)}（${tx(p.tag)}）${tx(p.epi)}` : `${u.rank(p.rank)} ${u.locked}  ${u.hint}: ${tx(p.hint)}`
+  }
+
+  // ---- トーク（架空のアプリ「こいぶみ」）
+  let chatRun = 0
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  function bubbleHTML(m, id, showAv) {
+    const [who, k, ja, en] = m, u = U()
+    if (who === 's') return `<div class="sys">${esc(lang === 'ja' ? ja : en)}</div>`
+    let body
+    if (k === 't') body = `<div class="bb">${esc(lang === 'ja' ? ja : en)}</div>`
+    else if (k === 'ph') body = `<div class="ph"><img src="img/p_${id}.webp?${V}" alt=""></div>`
+    else if (k === 'pic') body = `<div class="pic"><svg viewBox="0 0 100 100">${STAMPS[ja]}</svg></div>`
+    else if (k === 'st') body = `<div class="st"><svg viewBox="0 0 100 100">${STAMPS[ja]}</svg></div>`
+    else body = `<div class="bb vc"><svg viewBox="0 0 20 20" class="play"><path d="M5 3l12 7-12 7z"/></svg><span class="wave">${'<i></i>'.repeat(14)}</span><b>${esc(ja)}</b></div>`
+    const meta = `<div class="meta">${who === 'y' ? `<span>${u.read}</span>` : ''}<span>${m.time}</span></div>`
+    const av = who === 'p' ? `<img class="av" src="img/t_${id}.webp?${V}" alt=""${showAv ? '' : ' style="visibility:hidden"'}>` : ''
+    return `<div class="m ${who}">${av}${body}${meta}</div>`
+  }
+  async function openChat(id) {
+    const p = PMAP[id], u = U(), run = ++chatRun, log = $('#chLog')
+    $('#chAv').src = `img/t_${id}.webp?${V}`; $('#chName').textContent = tx(p.name); $('#chTag').textContent = tx(p.tag); $('#chBack').lastChild.textContent = u.zukan
+    footMode('wait'); $('#chText').value = ''
+    let t = '0:00'
+    const list = CHATS[id].map(m => { if (m[4]) t = m[4]; const c = m.slice(); c.time = t; return c })
+    log.innerHTML = `<div class="sys brand">${u.app}</div>`
+    $('#chat').hidden = false; $('#chat').dataset.id = id; window.__chatDone = false
+    let prev = null
+    for (let i = 0; i < list.length; i++) {
+      if (run !== chatRun) return
+      const m = list[i]
+      log.insertAdjacentHTML('beforeend', bubbleHTML(m, id, m[0] === 'p' && prev !== 'p')); prev = m[0]
+      log.lastElementChild.classList.add('in')
+      log.scrollTop = log.scrollHeight
+      if (m[0] !== 's') Sfx('msg')
+      if (!chatSkip) await wait(m[0] === 's' ? 380 : 520)
+    }
+    window.__chatDone = true
+    if (run !== chatRun) return
+    // 最後に1回だけ、自分の一文を送れる。返信は来ないし、ずっと未読のまま（端末の中だけに残す）
+    const mine = myLine(id)
+    if (mine) { log.insertAdjacentHTML('beforeend', mineHTML(mine)); log.scrollTop = log.scrollHeight; footMode('sent') }
+    else footMode('open')
+  }
+  // 自分の一文（相手ごと）。localStorage が使えない時は、この画面を開いている間だけ覚える
+  const MY_KEY = 'jmg_myline', myMem = {}
+  function myLines() { try { return JSON.parse(store.get(MY_KEY) || '{}') || {} } catch (e) { return {} } }
+  function myLine(id) { return myLines()[id] || myMem[id] || null }
+  function saveMyLine(id, v) { myMem[id] = v; const all = myLines(); all[id] = v; try { localStorage.setItem(MY_KEY, JSON.stringify(all)) } catch (e) {} }
+  function mineHTML(v) { return `<div class="m y mine in"><div class="bb">${esc(v.t)}</div><div class="meta"><span class="unread">${U().unread}</span><span>${esc(v.at)}</span></div></div>` }
+  function footMode(mode) {
+    const f = $('#chFoot'), inp = $('#chText'), u = U()
+    f.hidden = mode === 'sent'; inp.placeholder = u.chatInput; $('#chSend').setAttribute('aria-label', u.send)
+    inp.disabled = mode !== 'open'; $('#chSend').disabled = mode !== 'open' || !inp.value.trim()
+    f.classList.toggle('wait', mode === 'wait')
+  }
+  function sendMine() {
+    const id = $('#chat').dataset.id, inp = $('#chText'), t = inp.value.replace(/\s+/g, ' ').trim().slice(0, 100)
+    if (!id || !t || myLine(id) || !window.__chatDone) return
+    const d = new Date(), v = { t, at: d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0') }
+    saveMyLine(id, v); inp.value = ''; inp.blur()
+    const log = $('#chLog'); log.insertAdjacentHTML('beforeend', mineHTML(v)); log.scrollTop = log.scrollHeight
+    Sfx('msg'); footMode('sent'); fitChat()
+  }
+  // キーボードが出ても入力欄と送った吹き出しが隠れないように、トークの高さを見えている所に合わせる
+  function fitChat() {
+    const c = $('#chat'), vv = window.visualViewport
+    if (c.hidden || !vv) { c.style.height = ''; c.style.top = ''; c.style.bottom = ''; return }
+    c.style.top = vv.offsetTop + 'px'; c.style.height = vv.height + 'px'; c.style.bottom = 'auto'
+    const log = $('#chLog'); log.scrollTop = log.scrollHeight
+  }
+  if (window.visualViewport) { visualViewport.addEventListener('resize', fitChat); visualViewport.addEventListener('scroll', fitChat) }
+  let chatSkip = false
+  function closeChat() { chatRun++; chatSkip = false; $('#chText').blur(); $('#chat').hidden = true; fitChat() }
+
+  // ---- 結果画面だけに出す PR ボタン（config.js の AFF_URL が空なら何も出さない）
+  function aff() {
+    const box = $('#affBox'), url = window.AFF_URL || '', u = U()
+    if (!url) { box.hidden = true; $('#bAff').removeAttribute('href'); return }
+    $('#bAff').href = url; $('#affTxt').textContent = u.affBtn; $('#affNote').textContent = u.affNote
+    box.hidden = false
+  }
+
+  function applyLang() {
+    const u = U(); document.documentElement.lang = lang
+    document.title = lang === 'ja' ? '自分磨き30日 女の子編（恋人は積み上げた分だけ）' : '30-Day Glow-Up: Her Story'
+    $('#tTitle').innerHTML = lang === 'ja' ? '自分磨き<b>30</b>日<em>女の子編</em>' : '<b>30</b>-Day<br>Glow-Up<em>Her Story</em>'
+    $('#tSub').textContent = u.sub; $('#bStart').textContent = u.start; $('#bHow').textContent = u.how; $('#bBook').textContent = u.zukan
+    $('#bLang').textContent = lang === 'ja' ? 'EN' : 'JA'
+    $('#bSave').textContent = u.save; $('#bPost').textContent = u.post; $('#bAgain').textContent = u.again; $('#bBook2').textContent = u.zukan
+    $('#loadTxt').textContent = u.load
+    $('#howH').textContent = u.how; $('#howClose').textContent = u.back
+    $('#howBody').innerHTML = u.howBody.map(t => `<p>${t}</p>`).join('') + `<small>${u.credits}<br><a href="privacy.html" target="_blank" rel="noopener">${u.privacy}</a></small>`
+    if (S && !$('#vPlay').hidden) { render(); tut() }
+    if (S && S.who && !$('#vEnd').hidden) result()
+    if (RV && !$('#vReveal').hidden) { if (RV.txt) $('#rvText').textContent = u[RV.txt]; if (RV.peeked) $('#peekSay').textContent = tx(D.PEEK[S.who]); $('#door').setAttribute('aria-label', u.open) }
+    if (!$('#chat').hidden) { chatSkip = true; openChat($('#chat').dataset.id) }
+  }
+
+  // ---- 入力
+  function on(sel, fn) { const el = $(sel); el.addEventListener('click', e => { fn(e) }) }
+  for (const b of $$('.obj[data-a]')) b.addEventListener('click', () => doAct(b.dataset.a, b))
+  on('#bStart', () => { Sfx('tap'); start() })
+  on('#bAgain', () => { Sfx('tap'); start() })
+  on('#bHow', () => { Snd.init(); $('#how').hidden = false })
+  on('#howClose', () => { $('#how').hidden = true })
+  on('#bBook', () => { Snd.init(); openBook() }); on('#bBook2', () => openBook(S && S.who)); on('#bookClose', () => { $('#book').hidden = true })
+  $('#grid').addEventListener('click', e => { const c = e.target.closest('.cell'); if (!c) return; info(c.dataset.id); if (book.has(c.dataset.id)) { Sfx('tap'); chatSkip = false; openChat(c.dataset.id) } })
+  on('#chBack', () => { Sfx('tap'); closeChat() })
+  on('#chLog', () => { chatSkip = true })
+  $('#chText').addEventListener('input', () => { $('#chSend').disabled = $('#chText').disabled || !$('#chText').value.trim() })
+  $('#chText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); sendMine() } })
+  $('#chText').addEventListener('focus', () => { chatSkip = true; setTimeout(fitChat, 60); setTimeout(fitChat, 400) })
+  $('#chText').addEventListener('blur', () => setTimeout(fitChat, 60))
+  on('#chSend', () => sendMine())
+  on('#bAff', () => { window.TM && TM.aff && TM.aff() })
+  on('#bC0', () => choose(0)); on('#bC1', () => choose(1))
+  on('#bNext', () => { Sfx('tap'); result() })
+  on('#bLang', () => { lang = lang === 'ja' ? 'en' : 'ja'; store.set('jmg_lang', lang); applyLang() })
+  on('#bMute', () => { Snd.init(); Snd.setMute(!Snd.muted); store.set('jmg_mute', Snd.muted ? '1' : '0'); muteIcon() })
+  on('#bSave', () => { window.TM && TM.share('save'); $('#card').toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'jibun-migaki-girls.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 3000) }) })
+  on('#bPost', () => {
+    window.TM && TM.share('x'); const p = PMAP[S.who]
+    const text = U().postText(tx(p.name) + (lang === 'ja' ? '（' + tx(p.tag) + '）' : ' (' + tx(p.tag) + ')'), tx(D.TITLES[S.ttl]))
+    open('https://x.com/intent/post?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent('https://tom3games.com/play/jibun-migaki-girls/'), '_blank')
+  })
+  document.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('#tmSupport')) window.TM && TM.support() })
+
+  // ---- 検証用の窓口
+  window.jmg = {
+    state: () => S && { day: S.day, done: S.done, soji: S.soji, temp: S.temp, naka: S.naka, mori: S.mori, money: S.money, hp: S.hp, choice: S.choice, who: S.who, n: S.n, sleeps: S.sleeps, chain: S.chain, maxChain: S.maxChain, gap: S.gap, pend: S.pend, miles: S.miles, dates: S.dates, hosp: S.hosp, fastRun: S.fastRun, noMoney: S.noMoney, cat: S.cat, granny: S.granny, threads: S.threads, final: S.final },
+    dateOpen: () => !!dateDone, start: () => start(), eve: () => eve,
+    raw: () => S, busy: () => busy, setSeed: n => { seedNext = n }, fast: f => { FAST = f },
+    itemXY: a => { const el = a === 'c0' ? $('#bC0') : a === 'c1' ? $('#bC1') : $(`.obj[data-a="${a}"]`); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.5, w: r.width, h: r.height } },
+    setLang: l => { lang = l; applyLang() }, book: () => [...book], setBook: ids => { book.clear(); ids.forEach(i => book.add(i)) },
+    cellXY: id => { const r = $(`.cell[data-id="${id}"]`).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height } },
+    door: () => RV && { p: RV.p, ready: RV.ready, opened: RV.opened, anim: RV.anim, peeping: RV.peeping, peeked: RV.peeked, knocks: RV.knocks, peeps: RV.peeps, veil: $('#portrait').classList.contains('veil') },
+    doorXY: () => { const g = s => { const r = $(s).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height } }; return { knob: g('#door .knob'), eye: g('#door .eye'), door: g('#door'), stage: g('#stage') } },
+    mirror: () => S && Sim.mirror(D, S, eve), meSrc: () => $('#meImg').getAttribute('src'), aff, myLine, tipLog: () => window.__tipLog || [], tutStep: () => tutStep,
+  }
+
+  // ---- 読み込み（最初の画面に要る絵を数えてバーを進める）
+  const CORE = ['room', 'o_mirror', 'me0', 'o_wallet', 'o_cal', 'shelf0', 'dress0', 'o_shoes', 'o_pan', 'o_laptop', 'o_bed', 'o_skin', 'o_nail', 'o_ring', 'o_penlight', 'o_scale']
+  let got = 0
+  const hideLoad = () => { const l = $('#loading'); if (l.dataset.gone) return; l.dataset.gone = 1; l.style.opacity = 0; l.style.pointerEvents = 'none'; setTimeout(() => { l.hidden = true }, 360) }
+  applyLang(); muteIcon()
+  Promise.all(CORE.map(n => loadImg(`img/${n}.webp?${V}`).then(() => { got++; $('#loadBar i').style.width = (got / CORE.length * 100) + '%' }))).then(() => {
+    hideLoad(); window.__jmgReady = true
+    // 残りは裏で読む（段階の絵と恋人）
+    const rest = ['shelf1', 'shelf2', 'shelf3', 'dress1', 'dress2', 'dress3'].concat(Sim.MIRRORS.filter(m => m !== 'me0'), D.P.map(p => 'p_' + p.id))
+    rest.forEach((n, i) => setTimeout(() => loadImg(`img/${n}.webp?${V}`), 200 + i * 60))
+  })
+  setTimeout(() => { if (!window.__jmgReady) { hideLoad(); window.__jmgReady = true } }, 12000)
+})()
