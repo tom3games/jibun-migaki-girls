@@ -79,7 +79,9 @@
     calPage()
   }
   // カレンダーの丸（直近7日のうち、しんどい方をやった日）。いつ効くかは読めないようにする（2026-11-23 本人「いつかで効くってところのやついらん。わかったら萎える」）
+  // 2026-11-23 本人「あと30日のしたのカレンダー消して」: 丸のカレンダーは画面から外した（仕組みは sim.js のまま）
   function habit(pop) {
+    if (!$('#habit')) return
     const u = U(), N = 7, days = S.log.slice(-N)
     while (days.length < N) days.unshift(null)
     $('#dots').innerHTML = days.map((a, i) => `<i class="${a && Sim.isSlow(a) ? 'on' : ''}${pop && i === N - 1 ? ' pop' : ''}"></i>`).join('')
@@ -216,7 +218,7 @@
     $('#memo').hidden = true
     const r = Sim.choose(D, S, i)
     if (r.broke) say(U().noMoney, 'bad')
-    else { say(tx(r.res), 'ev'); floats($('#mirror'), r.d); if (ev === 'cat' && i === 0) Sfx('meow') }
+    else { say(tx(r.res), 'ev'); floats($('#mirror'), r.d); if (ev === 'cat' && i === 0) Sfx('meow'); if (/^oshi/.test(ev) && i === 0) Sfx('oshi') }
     render()
     await afterDay(r)
   }
@@ -543,7 +545,7 @@
   }
 
   // ---- 読み込み（最初の画面に要る絵を数えてバーを進める）
-  const CORE = ['room', 'o_mirror', 'me0', 'o_wallet', 'o_cal', 'shelf0', 'dress0', 'o_shoes', 'o_laptop', 'o_bed', 'o_nail', 'o_ring', 'o_penlight', 'o_scale']
+  const CORE = ['room', 'o_mirror', 'me0', 'o_wallet', 'shelf0', 'dress0', 'o_shoes', 'o_laptop', 'o_bed', 'o_nail', 'o_ring', 'o_scale']
   let got = 0
   const hideLoad = () => { const l = $('#loading'); if (l.dataset.gone) return; l.dataset.gone = 1; l.style.opacity = 0; l.style.pointerEvents = 'none'; setTimeout(() => { l.hidden = true }, 360) }
   applyLang(); muteIcon()

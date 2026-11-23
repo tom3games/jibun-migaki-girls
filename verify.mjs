@@ -79,7 +79,7 @@ async function playPlan(p, plan, { seed, touch, shots, cont, open = 'tap' } = {}
   let taps = 0
   for (let i = 0; i < 80; i++) {
     const st = await p.evaluate(() => jmg.state()); if (st.done) break
-    if (st.choice) { const c = await p.evaluate(([pl, ev]) => Plans.choice(pl, ev), [plan, st.choice]); await tapXY(p, 'c' + c, touch) }
+    if (st.choice) { const c = await p.evaluate(([pl, ev]) => Plans.choice(pl, ev, jmg.raw()), [plan, st.choice]); await tapXY(p, 'c' + c, touch) }
     else {
       const a = await p.evaluate(pl => Plans.P[pl](jmg.raw()), plan); await tapXY(p, a, touch)
       // お金が足りず日が進まなかったら、sim.mjs と同じ代わりの行動
@@ -228,32 +228,32 @@ const clean = () => q.evaluate(() => { const S = jmg.raw(); S.events = []; S.dea
 const tapDay = async a => { await tapXY(q, a); await q.waitForFunction(() => jmg.dateOpen() || !jmg.busy()); if (await q.evaluate(() => jmg.dateOpen())) { await tapXY(q, 'c0'); await q.waitForFunction(() => !jmg.busy()) } if (await q.evaluate(() => jmg.state().choice)) { await q.waitForSelector('#memo:not([hidden])'); await tapXY(q, 'c1'); await q.waitForFunction(() => !jmg.busy()) } }
 await t('お金が足りないと押しても日が減らない', async () => {
   await q.evaluate(() => { jmg.setSeed(77); jmg.fast(0.02) }); await q.click('#bStart'); await clean()
-  await q.evaluate(() => { jmg.raw().money = 500 })
-  const d0 = await q.evaluate(() => jmg.state().day); await tapXY(q, 'oshi'); await q.waitForTimeout(100)
+  await q.evaluate(() => { jmg.raw().money = 500; jmg.raw().deals = [] })
+  const d0 = await q.evaluate(() => jmg.state().day); await tapXY(q, 'beauty'); await q.waitForTimeout(100)
   const r = await q.evaluate(() => ({ day: jmg.state().day, b: document.querySelector('#bubble').textContent, nm: jmg.state().noMoney }))
   expect(r.day === d0 && /足りない/.test(r.b) && r.nm === 1, JSON.stringify(r))
 })
 await t('遅れて効く: 走っても4日は何も変わらず（「何も変わらない……」）、丸が5個目でまとめて効く', async () => {
   await q.evaluate(() => { jmg.setSeed(78); jmg.fast(0.02); jmg.start() }); await clean()
   const s0 = await q.evaluate(() => jmg.state().soji), seq = []
-  for (const a of ['run', 'study', 'sleep', 'study']) { await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay(a); seq.push(await q.evaluate(() => ({ soji: jmg.state().soji, chain: jmg.state().chain, b: document.querySelector('#bubble').textContent, dots: document.querySelectorAll('#dots i.on').length }))) }
+  for (const a of ['run', 'study', 'sleep', 'study']) { await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay(a); seq.push(await q.evaluate(() => ({ soji: jmg.state().soji, chain: jmg.state().chain, b: document.querySelector('#bubble').textContent }))) }
   await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay('run')
   const m = await q.evaluate(() => ({ soji: jmg.state().soji, chain: jmg.state().chain, b: document.querySelector('#bubble').textContent, miles: window.__miles }))
   await q.screenshot({ path: ROOT + '/shots/v-mile5.png' })
-  expect(seq.every(x => x.soji === s0 && /何も変わらない/.test(x.b)) && seq.map(x => x.chain).join() === '1,2,3,4' && seq[3].dots === 4 && m.chain === 5 && m.soji >= s0 + 10 && /まとめて効いた/.test(m.b) && !/\d/.test(m.b) && m.miles === 1, JSON.stringify({ s0, seq, m })); return { s0, after: m.soji }
+  expect(seq.every(x => x.soji === s0 && /何も変わらない/.test(x.b)) && seq.map(x => x.chain).join() === '1,2,3,4' && m.chain === 5 && m.soji >= s0 + 10 && /まとめて効いた/.test(m.b) && !/\d/.test(m.b) && m.miles === 1, JSON.stringify({ s0, seq, m })); return { s0, after: m.soji }
 })
 await t('1日休むと、丸は切れずに「ためた分」が少し減るだけ', async () => {
   await clean(); await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay('sleep'); await tapDay('study')
   const a = await q.evaluate(() => ({ ...jmg.state().pend, chain: jmg.state().chain }))
   await tapDay('selfie')
-  const b = await q.evaluate(() => ({ ...jmg.state().pend, chain: jmg.state().chain, gap: jmg.state().gap, t: document.querySelector('#hTxt').textContent }))
-  expect(b.chain === a.chain && b.gap === 1 && b.soji < a.soji && b.soji > a.soji * 0.8 && /休んだ/.test(b.t), JSON.stringify({ a, b })); return b.t
+  const b = await q.evaluate(() => ({ ...jmg.state().pend, chain: jmg.state().chain, gap: jmg.state().gap }))
+  expect(b.chain === a.chain && b.gap === 1 && b.soji < a.soji && b.soji > a.soji * 0.8, JSON.stringify({ a, b })); return b
 })
 await t('3日空くと丸が全部消えて、ためた分もゼロ（やり直し）', async () => {
-  await tapDay('selfie'); const w = await q.evaluate(() => ({ t: document.querySelector('#hTxt').textContent, warn: document.querySelector('#habit').classList.contains('warn') }))
+  await tapDay('selfie'); const w = await q.evaluate(() => ({ gap: jmg.state().gap }))
   await q.evaluate(() => { jmg.raw().money = 50000 }); await tapDay('beauty')
   const r = await q.evaluate(() => ({ chain: jmg.state().chain, pend: jmg.state().pend, b: document.querySelector('#bubble').textContent }))
-  expect(/最初から/.test(w.t) && w.warn && r.chain === 0 && r.pend.soji === 0 && r.pend.naka === 0 && /全部消えた/.test(r.b), JSON.stringify({ w, r })); return w.t
+  expect(w.gap === 2 && r.chain === 0 && r.pend.soji === 0 && r.pend.naka === 0 && /全部消えた/.test(r.b), JSON.stringify({ w, r })); return r.b
 })
 await t('すぐ効く: 美容はその日に盛りが上がり、寝ると落ちる', async () => {
   await clean(); await q.evaluate(() => { const S = jmg.raw(); S.mori = 0; S.salonDays = 0; jmg.fast(1) }); await q.waitForTimeout(50)
@@ -326,9 +326,13 @@ await t('遊びの画面で同時に出る文字は2つまで（吹き出し・�
   const n = await q.evaluate(() => ['#bubble', '#tip', '#memo'].filter(s => { const e = document.querySelector(s); return e && !e.hidden && e.textContent.trim() }).length)
   expect(n <= 2, n); return n
 })
-await t('いつ効くかは読めない（節目までの日数・節目の数を画面と文言に出さない）', async () => {
-  const r = await q.evaluate(() => { const ui = JSON.stringify(D.UI) + JSON.stringify(D.P.map(p => p.hint)) + document.body.innerText; return { days: /あと\d+日で効く|\d+ more to pay off|5・10|5, 10|丸が\d+個|\d+ in a row/.test(ui), dots: document.querySelectorAll('#dots i').length, num: !!document.querySelector('#hN') } })
-  expect(!r.days && r.dots === 7 && !r.num, JSON.stringify(r)); return r
+await t('いつ効くかは読めない（丸のカレンダーも無い・節目の日数を画面と文言に出さない）', async () => {
+  const r = await q.evaluate(() => { const ui = JSON.stringify(D.UI) + JSON.stringify(D.P.map(p => p.hint)) + document.body.innerText; return { days: /あと\d+日で効く|\d+ more to pay off|5・10|5, 10|丸が\d+個|\d+ in a row/.test(ui), habit: !!document.querySelector('#habit, #dots, #hN') } })
+  expect(!r.days && !r.habit, JSON.stringify(r)); return r
+})
+await t('推し活は行動に無く、30日で5回のできごと（乗ると推しの回数とお金・体力）', async () => {
+  const r = await q.evaluate(() => { const S = Sim.create(D, 4321); const ev = S.events.filter(e => /^oshi/.test(e || '')).length; S.events = []; S.deals = []; S.events[S.day] = 'oshi1'; S.money = 20000; S.hp = 80; Sim.act(D, S, 'study'); const c = S.choice; Sim.choose(D, S, 0); return { act: 'oshi' in D.ACT, ev, c, yes: S.oshiYes, money: S.money, hp: S.hp, btn: !!document.querySelector('.obj[data-a="oshi"]') } })
+  expect(!r.act && !r.btn && r.ev === 5 && r.c === 'oshi1' && r.yes === 1 && r.money === 17000 && r.hp === 50, JSON.stringify(r)); return r
 })
 await t('決め事: 整形は行動に無い・体重の数字を出さない', async () => {
   const r = await q.evaluate(() => { const acts = JSON.stringify(D.ACT) + JSON.stringify(D.UI); const all = JSON.stringify(D) + JSON.stringify(CHATS); return { seikei: /整形/.test(acts), kg: /\d+\s?(kg|キロ)/i.test(all), weight: /体重/.test(all) } })
@@ -385,12 +389,12 @@ await t('PR はタイトル・遊び・図鑑・トークには出ない', async
 // ---- 値の上限・鏡の自分
 await t('素地・中身・盛りは100で止まる', async () => {
   const z = await open(browser)
-  const c = await z.evaluate(() => { const M = {}; for (const pl of Object.keys(Plans.P)) for (let i = 0; i < 4; i++) { const S = Sim.create(D, 300 + i); while (!S.done) { if (S.choice) { Sim.choose(D, S, Plans.choice(pl, S.choice)); continue } if (!Sim.act(D, S, Plans.P[pl](S)).ok) Sim.act(D, S, Plans.FB[pl] || 'sleep'); for (const k of ['soji', 'naka', 'mori']) M[k] = Math.max(M[k] || 0, S[k]) } } return M })
+  const c = await z.evaluate(() => { const M = {}; for (const pl of Object.keys(Plans.P)) for (let i = 0; i < 4; i++) { const S = Sim.create(D, 300 + i); while (!S.done) { if (S.choice) { Sim.choose(D, S, Plans.choice(pl, S.choice, S)); continue } if (!Sim.act(D, S, Plans.P[pl](S)).ok) Sim.act(D, S, Plans.FB[pl] || 'sleep'); for (const k of ['soji', 'naka', 'mori']) M[k] = Math.max(M[k] || 0, S[k]) } } return M })
   await z.close()
   expect(c.soji === 100 && c.naka === 100 && c.mori <= 100, JSON.stringify(c)); return c
 })
 await t('鏡の自分14通りが、どれも bot の遊び方で出る', async () => {
-  const p0 = await open(browser); const r = await p0.evaluate(() => { const seen = {}; for (const pl of Object.keys(Plans.P)) for (let i = 0; i < 6; i++) { const S = Sim.create(D, 1000 + i * 37); while (!S.done) { if (S.choice) { Sim.choose(D, S, Plans.choice(pl, S.choice)); continue } if (!Sim.act(D, S, Plans.P[pl](S)).ok) Sim.act(D, S, Plans.FB[pl] || 'sleep'); for (const m of [Sim.mirror(D, S), Sim.mirror(D, S, true)]) seen[m] = seen[m] || pl } } return { miss: Sim.MIRRORS.filter(m => !seen[m]), n: Sim.MIRRORS.length, seen } })
+  const p0 = await open(browser); const r = await p0.evaluate(() => { const seen = {}; for (const pl of Object.keys(Plans.P)) for (let i = 0; i < 6; i++) { const S = Sim.create(D, 1000 + i * 37); while (!S.done) { if (S.choice) { Sim.choose(D, S, Plans.choice(pl, S.choice, S)); continue } if (!Sim.act(D, S, Plans.P[pl](S)).ok) Sim.act(D, S, Plans.FB[pl] || 'sleep'); for (const m of [Sim.mirror(D, S), Sim.mirror(D, S, true)]) seen[m] = seen[m] || pl } } return { miss: Sim.MIRRORS.filter(m => !seen[m]), n: Sim.MIRRORS.length, seen } })
   await p0.close(); expect(r.n === 14 && !r.miss.length, JSON.stringify(r)); return r.seen
 })
 await t('鏡の自分が本物のタップの遊びで変わっていく（走ってばかり→走る人→顔色→光りだす）', async () => {
@@ -411,10 +415,10 @@ await t('鏡の自分が本物のタップの遊びで変わっていく（走�
 await t('鏡の絵14枚が全部読める・値どおりに出る', async () => {
   const z = await open(browser)
   await z.evaluate(() => { jmg.setSeed(9); jmg.fast(0.02) }); await z.click('#bStart')
-  const SET = { me0: {}, me_soji1: { soji: 45 }, me_soji2: { soji: 70 }, me_mori1: { mori: 16 }, me_mori2: { mori: 45 }, me_naka1: { naka: 50 }, me_naka2: { naka: 70, soji: 45 }, me_allhigh: { soji: 80, naka: 70 }, me_run: { log: ['run', 'study', 'run', 'run'] }, me_tired: { hp: 5 }, me_fast: { temp: 20, fastRun: 2 }, me_hosp: { lastHosp: 1 }, me_oshi: { log: ['oshi', 'oshi'] }, me_selfie: { log: ['selfie', 'selfie'] } }
+  const SET = { me0: {}, me_soji1: { soji: 45 }, me_soji2: { soji: 70 }, me_mori1: { mori: 16 }, me_mori2: { mori: 45 }, me_naka1: { naka: 50 }, me_naka2: { naka: 70, soji: 45 }, me_allhigh: { soji: 80, naka: 70 }, me_run: { log: ['run', 'study', 'run', 'run'] }, me_tired: { hp: 5 }, me_fast: { temp: 20, fastRun: 2 }, me_hosp: { lastHosp: 1 }, me_oshi: { lastOshi: 3 }, me_selfie: { log: ['selfie', 'selfie'] } }
   const bad = []
   for (const [nm, st] of Object.entries(SET)) {
-    const got = await z.evaluate(st => { const S = jmg.raw(); Object.assign(S, { soji: 20, naka: 20, mori: 0, temp: 0, fastRun: 0, hp: 80, lastHosp: -99, log: [], day: 3 }, st); return Sim.mirror(D, S) }, st)
+    const got = await z.evaluate(st => { const S = jmg.raw(); Object.assign(S, { soji: 20, naka: 20, mori: 0, temp: 0, fastRun: 0, hp: 80, lastHosp: -99, lastOshi: -99, log: [], day: 3 }, st); return Sim.mirror(D, S) }, st)
     const ok = await z.evaluate(async nm => { const i = new Image(); i.src = `img/${nm}.webp?v=1`; try { await i.decode(); return i.naturalWidth >= 200 } catch (e) { return false } }, nm)
     if (got !== nm || !ok) bad.push(nm + ':' + got + ':' + ok)
   }
@@ -511,7 +515,7 @@ await t('ドア: Enter キーでも開く（PC）', async () => {
 await t('ドア: 判定は開け方で変わらない（同じ種・同じ遊び方なら、タップでもドラッグでも同じ恋人）', async () => {
   const z = await open(browser), out = []
   for (const [plan, seed] of [['tanaka', 4242], ['host', 777], ['oshi', 1001]]) {
-    const exp = await z.evaluate(([pl, sd]) => { const S = Sim.create(D, sd); while (!S.done) { if (S.choice) { Sim.choose(D, S, Plans.choice(pl, S.choice)); continue } if (!Sim.act(D, S, Plans.P[pl](S)).ok) Sim.act(D, S, Plans.FB[pl] || 'sleep') } return Sim.judge(D, S) }, [plan, seed])
+    const exp = await z.evaluate(([pl, sd]) => { const S = Sim.create(D, sd); while (!S.done) { if (S.choice) { Sim.choose(D, S, Plans.choice(pl, S.choice, S)); continue } if (!Sim.act(D, S, Plans.P[pl](S)).ok) Sim.act(D, S, Plans.FB[pl] || 'sleep') } return Sim.judge(D, S) }, [plan, seed])
     const a = await playPlan(z, plan, { seed, open: 'tap' }); await z.click('#bNext'); await z.waitForFunction(() => window.__jmgCardDone)
     const b = await playPlan(z, plan, { seed, open: 'drag' }); await z.click('#bNext'); await z.waitForFunction(() => window.__jmgCardDone)
     out.push([plan, exp, a.who, b.who])
@@ -580,10 +584,10 @@ for (const [w, h, name] of [[360, 640, 'small'], [390, 844, 'phone'], [430, 932,
     const b = await s.evaluate(() => { const r = document.querySelector('#chBack').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } }); await s.touchscreen.tap(b.x, b.y); await s.waitForSelector('#chat', { state: 'hidden' }) }
   for (const [v, rr] of Object.entries(views)) await t(`一画面に収まる ${name} ${w}x${h} ${v}`, async () => { expect(!rr.over.length, JSON.stringify(rr)) })
   await t(`${name}: はみ出し・エラーなし（${r.who}）`, async () => { const o = await overflow(s); expect(o.sw <= o.W && !o.bad.length && !s.errs.length, JSON.stringify(o) + s.errs.join('|')) })
-  await t(`${name}: 部屋の7つの物が全部画面内で押せる大きさ`, async () => {
+  await t(`${name}: 部屋の6つの物が全部画面内で押せる大きさ`, async () => {
     await s.tap('#bookClose'); await s.tap('#bAgain'); await s.waitForTimeout(150)
     const r2 = await s.evaluate(() => Object.keys(D.ACT).map(a => { const x = jmg.itemXY(a); return [a, Math.round(x.w), Math.round(x.h), x.y < innerHeight && x.y > 0] }))
-    expect(r2.length === 7 && r2.every(([, w, h, inn]) => w >= 44 && h >= 44 && inn), JSON.stringify(r2))
+    expect(r2.length === 6 && r2.every(([, w, h, inn]) => w >= 44 && h >= 44 && inn), JSON.stringify(r2))
   })
   await s.close()
 }

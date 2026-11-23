@@ -15,21 +15,25 @@
   P.shikaku = S => S.hp < 35 ? 'sleep' : 'study'
   P.tanaka = S => S.hp < 35 ? 'sleep' : S.day % 4 === 0 && S.money >= 2500 ? 'beauty' : S.day % 3 === 0 ? 'run' : 'study'
   P.takeshi = S => { const a = ['beauty', 'run', 'selfie', 'sleep', 'study', 'fast'][S.day % 6]; return a === 'beauty' && S.money < 2500 ? 'study' : a }
-  P.doctor = S => S.day <= 5 ? 'fast' : bal(S)
+  P.doctor = S => S.hosp === 0 && S.day <= 14 ? (S.hp < 20 ? 'sleep' : 'fast') : bal(S)
   P.ren = S => S.n.beauty < 9 && S.money >= 2500 ? 'beauty' : S.hp < 35 ? 'sleep' : 'study'
   P.kakou = S => S.hp < 20 ? 'sleep' : S.day % 2 ? 'selfie' : (S.money >= 2500 && S.n.beauty < 6 ? 'beauty' : 'selfie')
-  P.host = S => S.n.oshi < 5 ? (S.money >= 7000 ? 'oshi' : 'study') : S.spent < 40000 ? (S.money >= 2500 ? 'beauty' : 'study') : S.hp < 30 ? 'sleep' : 'selfie'
-  P.oshi = S => S.money >= 7000 ? 'oshi' : S.hp < 30 ? 'sleep' : 'study'
+  P.host = S => S.spent < 30000 ? (S.money >= 11000 ? 'beauty' : 'study') : S.hp < 30 ? 'sleep' : 'selfie'
+  P.oshi = S => S.hp < 35 ? 'sleep' : S.money < 10000 ? 'study' : 'selfie'
   P.tomo = S => S.money >= 2500 ? 'beauty' : S.hp < 30 ? 'sleep' : 'study'
   P.kuma = () => 'sleep'
-  P.sagi = S => 'oshi'
+  P.sagi = S => 'beauty'
   P.cat = S => P.tanaka(S)
   P.granny = S => P.tanaka(S)
   // 断れなかった時の代わり（お金が足りない時）
   const FB = { sagi: 'selfie' }
   // できごとの2択（猫の bot は猫にエサ、おばあちゃんの bot は手伝う。ほかは誘惑を断る＝2つ目）
   const CH = { cat: { cat: 0 }, granny: { granny: 0 } }
-  function choice(plan, ev) { return (CH[plan] && CH[plan][ev] != null) ? CH[plan][ev] : 1 }
+  // 推しのできごと: 推しの bot は全部乗る。ホストの bot は2回だけ乗る
+  function choice(plan, ev, S) {
+    if (/^oshi/.test(ev)) { if (plan === 'oshi') return 0; if (plan === 'host') return S && S.oshiYes >= 2 ? 1 : 0; return 1 }
+    return (CH[plan] && CH[plan][ev] != null) ? CH[plan][ev] : 1
+  }
   const api = { P, choice, FB }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   root.Plans = api

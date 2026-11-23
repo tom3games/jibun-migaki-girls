@@ -14,7 +14,7 @@
       seed, day: 1, done: false, soji: D.START.soji, naka: D.START.naka, mori: D.START.mori, money: D.START.money, hp: D.START.hp,
       temp: 0, fastRun: 0, fastOff: 0, fastTotal: 0, hosp: 0, lastHosp: -99,
       chain: 0, maxChain: 0, gap: 0, pend: { soji: 0, naka: 0 }, miles: [], skill: 0, salonDays: 0, kakou: 0, likes: 0, spent: 0, noMoney: 0,
-      dates: [], dateGreat: 0, dateFail: 0, sore: false,
+      dates: [], dateGreat: 0, dateFail: 0, sore: false, oshiYes: 0, lastOshi: -99,
       n: {}, sleeps: 0, cat: 0, granny: 0, forced: 0, forcedWhy: '', choice: null, log: [], deals: [], events: [], final: null,
     }
     for (const k in D.ACT) S.n[k] = 0
@@ -25,6 +25,8 @@
     const take = () => free.splice(Math.floor(r() * free.length), 1)[0]
     S.threads = { cat: r() < 0.5, granny: r() < 0.5 }
     for (const th of ['cat', 'granny']) if (S.threads[th]) for (let i = 0; i < 4; i++) S.events[take()] = th
+    // 推しのできごと: 毎回5日（どれが来るかはくじ）
+    for (let i = 0; i < 5; i++) S.events[take()] = 'oshi' + (1 + Math.floor(r() * 3))
     const W = D.POOL.reduce((a, b) => a + b[1], 0)
     for (const d of free) if (r() < 0.3) { let x = r() * W; for (const [k, w] of D.POOL) { if ((x -= w) < 0) { S.events[d] = k; break } } }
     S.r = r
@@ -72,7 +74,6 @@
     else if (a === 'study') { if (S.hp < 15) { S.pend.naka += 1; out.msgs.push('nap') } else { S.hp -= 20; S.money += 5000 * (x2 ? 2 : 1); S.naka += 1; S.pend.naka += D.PEND.study } }
     else if (a === 'beauty') { S.mori += 16 + Math.min(S.skill, 8); S.skill++ }
     else if (a === 'selfie') { S.kakou += 8; S.likes += 40 + S.mori * 3 + S.kakou * 2; S.hp += 5 }
-    else if (a === 'oshi') { S.hp += 15 }
     else if (a === 'fast') {
       S.money += 1000; S.hp -= 15; S.fastRun++; S.fastTotal++; S.fastOff = 0; S.temp += D.FAST.gain
       if (S.fastRun >= D.FAST.limit) { rebound(D, S, true); S.hosp++; S.lastHosp = S.day; S.forced = 2; S.forcedWhy = 'hosp'; out.msgs.push('hosp') }
@@ -125,6 +126,7 @@
     for (const k of ['soji', 'naka', 'mori', 'hp', 'money']) if (E[k]) S[k] += E[k]
     if (E.money < 0) S.spent -= E.money
     if (E.cat) S.cat += E.cat; if (E.granny) S.granny += E.granny
+    if (E.oshi) { S.oshiYes += E.oshi; S.lastOshi = S.day }
     if (E.kakou) S.kakou += E.kakou
     if (E.gap) slip(D, S, out)
     fix(S)
@@ -173,8 +175,8 @@
     if (so >= H && na >= H && S.n.beauty >= 4 && S.money >= D.JIBUN_MONEY) return 'jibun'
     if (top && S.maxChain >= 20 && S.dateGreat >= 1) return 'kujo'
     if (so >= H && na >= H) return 'saeki'
-    if (S.n.oshi >= 9) return 'oshi'
-    if (S.n.oshi >= 5 && S.spent >= 40000) return 'host'
+    if (S.oshiYes >= 4) return 'oshi'
+    if (S.oshiYes >= 2 && S.spent >= 30000) return 'host'
     // 近道ばかりの型。素地も育てていれば、こちらには来ない
     if (S.n.beauty >= 12 && so < 50) return 'tomo'
     if (S.n.selfie >= 6 && so < 50) return 'kakou'
@@ -199,7 +201,7 @@
     const so = S.soji + S.temp, na = S.naka, mo = eve && S.moriEve != null ? S.moriEve : S.mori, H = D.H
     if (so >= H + 10 && na >= H) return 'me_allhigh'
     const last = S.log.slice(-4), cnt = a => last.filter(x => x === a).length
-    if (cnt('oshi') >= 2) return 'me_oshi'
+    if (S.lastOshi >= 0 && S.day - S.lastOshi <= 1) return 'me_oshi'
     if (cnt('selfie') >= 2) return 'me_selfie'
     // メイクは1回目から鏡に出る（素地がずっと高い時は、素地の方が勝つ）
     if (mo >= 14 && mo >= so - 10) return mo >= 40 ? 'me_mori2' : 'me_mori1'

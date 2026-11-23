@@ -15,14 +15,13 @@ window.D = {
   DECAY: 0.45, SALON_KEEP: 18,   // 盛りは寝ると落ちる。サロンの後の4日はある程度もつ
   DATES: [10, 20], DATE_GAP: 20, DATE_GOOD: 50,
   JIBUN_MONEY: 60000,
-  // 行動は7つ（2026-11-23 本人「選択肢多すぎる」）。上の段がしんどい方、下の段がすぐ効く方
+  // 行動は6つ（2026-11-23 本人「選択肢多すぎる」「推し活はたまに起こるイベントにして」）。上の段がしんどい方、下の段がすぐ効く方
   ACT: {
     run:    { ja: '運動と自炊', en: 'Run & cook', slow: 1, snd: 'run' },
     study:  { ja: '勉強と仕事', en: 'Study & work', slow: 1, snd: 'study' },
     sleep:  { ja: '早寝', en: 'Early bed', slow: 1, snd: 'sleep' },
     beauty: { ja: '美容', en: 'Beauty', money: -2500, snd: 'beauty' },
     selfie: { ja: '加工自撮り', en: 'Filter selfie', snd: 'selfie' },
-    oshi:   { ja: '推し活', en: 'Fan life', money: -7000, snd: 'oshi' },
     fast:   { ja: '断食', en: 'Fasting', snd: 'fast' },
   },
   // 物の札の小さい字（効き目のヒント）
@@ -37,13 +36,11 @@ window.D = {
     sleep: { ja: ['22時に寝た。何も変わらない……', 'スマホを置いて寝た。何も変わらない……', 'よく寝た。何も変わらない……'], en: ['In bed by 10. Nothing changed...', 'Phone down, lights out. Nothing changed...', 'Slept well. Nothing changed...'] },
     beauty: { ja: ['アイラインが決まった', 'まつ毛が3倍になった', '高い美容液を開けた'], en: ['Nailed the eyeliner', 'Lashes tripled', 'Opened the pricey serum'] },
     selfie: { ja: ['いいねが止まらない', '加工で目が2倍になった', '「誰？」とコメントが来た'], en: ["Likes won't stop", 'The filter doubled my eyes', 'Someone commented "Who?"'] },
-    oshi: { ja: ['推しが今日も尊い', 'グッズを3つ買った', 'ライブ配信で叫んだ'], en: ['My idol is divine today', 'Bought 3 pieces of merch', 'Screamed at a live stream'] },
     fast: { ja: ['今日は水だけ', 'おなかが鳴っている', '冷蔵庫を見ないようにした'], en: ['Only water today', 'My stomach is growling', 'Avoided looking at the fridge'] },
   },
   // 今日のおすすめ（日めくりの赤字）。対象が半額・2倍
   DEALS: [
     { act: 'beauty', ja: 'サロン半額', en: 'Salon half off' },
-    { act: 'oshi', ja: 'グッズ半額', en: 'Merch half off' },
     { act: 'study', ja: '時給2倍', en: 'Double wage' },
   ],
   // できごとの出やすさ（猫とおばあちゃんは別）
@@ -59,6 +56,10 @@ window.D = {
     sale: { ja: 'コスメのセール通知。「今だけ半額」', en: 'Makeup sale alert: "Half off, today only"', c: [{ ja: '買う 5,000円', en: 'Buy 5,000y', money: -5000, mori: 8, res: { ja: '同じ色のリップが3本になった', en: 'Now I own 3 of the same lipstick' } }, { ja: '閉じる', en: 'Close', res: { ja: '通知を切った', en: 'Turned off alerts' } }] },
     ex: { ja: '元カレから「元気？」', en: 'My ex texted: "How are you?"', c: [{ ja: '返す', en: 'Reply', hp: -10, gap: 1, res: { ja: '朝4時まで電話した', en: 'On the phone until 4 a.m.' } }, { ja: '既読だけ', en: 'Just read it', res: { ja: '既読をつけて寝た', en: 'Read it and went to bed' } }] },
     quit: { ja: 'ふとんから出たくない。今日は走るの、やめたい', en: "Don't want to leave the futon. Skip today's run?", c: [{ ja: 'やめる', en: 'Skip', hp: 15, gap: 1, res: { ja: '二度寝した', en: 'Went back to sleep' } }, { ja: '走る', en: 'Run anyway', res: { ja: '玄関を出たら、案外走れた', en: 'Once outside, it was fine' } }] },
+    // 推し活は、たまに起きるできごと（2026-11-23 本人）。乗るとお金が減り、体力も少し減る
+    oshi1: { ja: '推しのライブのチケットが当たった', en: 'Won tickets to my idol\'s live show', c: [{ ja: '行く 8,000円', en: 'Go 8,000y', money: -8000, hp: -10, oshi: 1, res: { ja: '声が枯れるまで叫んだ', en: 'Screamed until my voice gave out' } }, { ja: 'やめておく', en: 'Skip it', res: { ja: '配信のアーカイブで我慢した', en: 'Watched the replay instead' } }] },
+    oshi2: { ja: '推しの新しいグッズが出た', en: 'New merch from my idol just dropped', c: [{ ja: '買う 6,000円', en: 'Buy 6,000y', money: -6000, hp: -5, oshi: 1, res: { ja: 'アクリルスタンドが3体になった', en: 'Now I own three acrylic stands' } }, { ja: 'やめておく', en: 'Skip it', res: { ja: 'カートに入れたまま寝た', en: 'Fell asleep with it in my cart' } }] },
+    oshi3: { ja: '配信で推しに名前を読まれた', en: 'My idol read my name on stream', c: [{ ja: '投げ銭する 5,000円', en: 'Send a tip 5,000y', money: -5000, hp: -5, oshi: 1, res: { ja: '「ありがとう」と言われた気がする', en: 'I think he said thank you' } }, { ja: '見るだけ', en: 'Just watch', res: { ja: 'スクショだけ撮った', en: 'Just took a screenshot' } }] },
     cat: { ja: 'やせた野良猫がこっちを見ている', en: 'A skinny stray cat is staring at me', c: [{ ja: 'エサをやる 500円', en: 'Feed it 500y', money: -500, cat: 1, res: { ja: 'のどを鳴らした', en: 'It purred' } }, { ja: '無視する', en: 'Ignore', res: { ja: '猫は去った', en: 'The cat left' } }] },
     granny: { ja: '隣のおばあちゃんが重い米袋を運んでいる', en: 'The granny next door is hauling a rice sack', c: [{ ja: '手伝う', en: 'Help', hp: -10, soji: 2, granny: 1, res: { ja: 'お茶をもらった', en: 'She gave me tea' } }, { ja: '会釈だけ', en: 'Just nod', res: { ja: '会釈を返された', en: 'She nodded back' } }] },
   },
@@ -83,8 +84,8 @@ window.D = {
     { id: 'doctor', tier: 2, name: { ja: '先生', en: 'The Doctor' }, tag: { ja: '病院で会った人', en: 'Met at the Hospital' }, say: { ja: '3食、食べてくださいね', en: 'Please eat three meals a day' }, epi: { ja: '出会いは点滴だった。デートは毎回、健康診断になった。', en: 'We met over an IV drip. Every date became a checkup.' }, hint: { ja: '食べずに細くなろうとする', en: 'Try to slim down by not eating' }, secret: 1 },
     { id: 'ren', tier: 2, name: { ja: 'レンくん', en: 'Ren' }, tag: { ja: '顔しか見ない人', en: 'Only Sees Faces' }, say: { ja: 'その顔、毎日その顔でいてね', en: 'Keep that exact face. Every day.' }, epi: { ja: 'すっぴんで会った日から、既読がつかなくなった。', en: 'The day I met him bare-faced, he stopped reading my texts.' }, hint: { ja: '美容をほどほど、素顔はそのまま', en: 'Some beauty, nothing underneath' } },
     { id: 'kakou', tier: 1, name: { ja: '画面の向こうの人', en: 'The Profile Pic' }, tag: { ja: '写真しか知らない人', en: 'Known Only by Photo' }, say: { ja: 'はじめまして（写真で）', en: 'Nice to meet you (in photos)' }, epi: { ja: '加工した写真どうしで3年やりとりした。まだ一度も会っていない。', en: 'Three years of trading filtered photos. Never met once.' }, hint: { ja: '加工した自撮りばかり', en: 'Filtered selfies only' } },
-    { id: 'host', tier: 1, name: { ja: '煌くん', en: 'Kirari' }, tag: { ja: 'ホスト', en: 'The Host' }, say: { ja: '姫、今日もかわいいね', en: 'Princess, cute as always' }, epi: { ja: 'シャンパンタワーを3回建てた。貯金は1本も残らなかった。', en: 'Built three champagne towers. Not one yen left.' }, hint: { ja: '推し活でお金を使う', en: 'Spend big on fan life' } },
-    { id: 'oshi', tier: 1, name: { ja: '推し', en: 'My Idol' }, tag: { ja: '画面から出てこない人', en: 'Never Leaves the Screen' }, say: { ja: '……（ポスター）', en: '...(poster)' }, epi: { ja: '30日、ずっと見つめ合った。向こうは印刷だった。', en: 'We gazed at each other for 30 days. He was a print.' }, hint: { ja: '推し活だけ', en: 'Nothing but fan life' } },
+    { id: 'host', tier: 1, name: { ja: '煌くん', en: 'Kirari' }, tag: { ja: 'ホスト', en: 'The Host' }, say: { ja: '姫、今日もかわいいね', en: 'Princess, cute as always' }, epi: { ja: 'シャンパンタワーを3回建てた。貯金は1本も残らなかった。', en: 'Built three champagne towers. Not one yen left.' }, hint: { ja: '推しのお誘いに乗って、お金も使う', en: 'Say yes to your idol and spend' } },
+    { id: 'oshi', tier: 1, name: { ja: '推し', en: 'My Idol' }, tag: { ja: '画面から出てこない人', en: 'Never Leaves the Screen' }, say: { ja: '……（ポスター）', en: '...(poster)' }, epi: { ja: '30日、ずっと見つめ合った。向こうは印刷だった。', en: 'We gazed at each other for 30 days. He was a print.' }, hint: { ja: '推しのお誘いには全部乗る', en: 'Say yes to every idol event' } },
     { id: 'tomo', tier: 0, name: { ja: 'ユリカ', en: 'Yurika' }, tag: { ja: '整形をすすめてくる女友達', en: 'Friend With a Clinic Coupon' }, say: { ja: 'あんた、あと少しで完成じゃん', en: "Girl, you're SO close to done" }, epi: { ja: '紹介クーポンは、今も財布に入っている。使っていない。', en: 'The referral coupon is still in my wallet. Unused.' }, hint: { ja: '美容ばかり', en: 'Beauty, beauty, beauty' } },
     { id: 'kuma', tier: 0, name: { ja: 'くまお', en: 'Kumao' }, tag: { ja: 'ぬいぐるみ', en: 'Teddy Bear' }, say: { ja: '……', en: '...' }, epi: { ja: '30日寝ていた。夢の中では、モテた。', en: 'Slept 30 days. In dreams, I was popular.' }, hint: { ja: 'ずっと寝る', en: 'Just sleep' } },
     { id: 'sagi', tier: 0, name: { ja: '黒田さん', en: 'Mr. Kuroda' }, tag: { ja: '出会い系の詐欺の人', en: 'The Dating Scammer' }, say: { ja: 'いい投資のお話があってね', en: 'I have a great investment for you' }, epi: { ja: '「必ず増える」は、必ず増えなかった。', en: '"Guaranteed returns" were guaranteed not to return.' }, hint: { ja: 'お金に困る', en: 'Run out of money' }, secret: 1 },
@@ -123,7 +124,7 @@ window.D = {
   // 称号（一番多くやった行動）
   TITLES: {
     run: { ja: '朝の川の常連', en: 'Riverside Regular' }, study: { ja: '仕事の鬼', en: 'Work Demon' }, sleep: { ja: '睡眠の天才', en: 'Sleep Prodigy' },
-    beauty: { ja: 'サロンの常連', en: 'Salon Regular' }, selfie: { ja: '加工の職人', en: 'Filter Master' }, oshi: { ja: '推しに生きる人', en: 'Lives for the Idol' }, fast: { ja: '水だけの人', en: 'Water-Only Person' },
+    beauty: { ja: 'サロンの常連', en: 'Salon Regular' }, selfie: { ja: '加工の職人', en: 'Filter Master' }, fast: { ja: '水だけの人', en: 'Water-Only Person' },
   },
   UI: {
     ja: {

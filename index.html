@@ -134,7 +134,7 @@ img{-webkit-user-drag:none;user-select:none}
 /* 床: 上の段は遅れて効く方（4つ）、下の段はすぐ効く方（5つ） */
 #floor{flex:1;min-height:0;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(2,minmax(0,1fr));gap:2px 3px;align-items:end}
 #floor .obj{height:100%;min-height:0;min-width:0;grid-column:span 4}
-#floor .obj.q{grid-column:span 3}
+#floor .obj.q{grid-column:span 4}
 #floor .obj img{flex:1;min-height:0;height:0;width:100%;max-width:100%}
 #floor .obj.q .lab{padding:2px 4px 3px;font-size:clamp(11px,3.1vw,14px)}
 .obj.q .lab{background:#ffc9d6}
@@ -344,7 +344,6 @@ img{-webkit-user-drag:none;user-select:none}
       <div id="hpNote"><b id="hpLab"></b><span id="hpNum"></span><div id="hpBar"></div></div>
     </div>
     <div id="pig"><img src="img/o_wallet.webp?v=1" alt=""><span id="money"></span></div>
-    <div id="habit"><img src="img/o_cal.webp?v=1" alt=""><div id="dots"></div><span id="hTxt"></span><span id="dateIn"></span></div>
     <div id="wall">
       <div class="disp" id="oShelf"><img id="shelfImg" src="img/shelf0.webp?v=1" alt=""><span class="gtag" id="gNaka"></span></div>
       <div id="mirror"><div class="mf"><img src="img/o_mirror.webp?v=1" alt=""><div class="glass"><img id="meImg" src="img/me0.webp?v=1" alt=""></div></div><span class="gtag" id="gSoji"></span><span id="meNote"></span></div>
@@ -357,7 +356,6 @@ img{-webkit-user-drag:none;user-select:none}
       <button class="obj" id="oBed" data-a="sleep"><img src="img/o_bed.webp?v=1" alt=""><span class="lab"></span></button>
       <button class="obj q" id="oBeauty" data-a="beauty"><img src="img/o_nail.webp?v=1" alt=""><span class="lab"></span></button>
       <button class="obj q" data-a="selfie"><img src="img/o_ring.webp?v=1" alt=""><span class="lab"></span></button>
-      <button class="obj q" data-a="oshi"><img src="img/o_penlight.webp?v=1" alt=""><span class="lab"></span></button>
       <button class="obj q" data-a="fast"><img src="img/o_scale.webp?v=1" alt=""><span class="lab"></span></button>
     </div>
   </div>
@@ -417,11 +415,11 @@ img{-webkit-user-drag:none;user-select:none}
 <script src="tm.js?v=3" data-game="jibun-migaki-girls"></script>
 <script src="sfx.js?v=4"></script>
 <script src="config.js?v=2"></script>
-<script src="data.js?v=3"></script>
+<script src="data.js?v=4"></script>
 <script src="chats.js?v=3"></script>
-<script src="sim.js?v=5"></script>
-<script src="plans.js?v=3"></script>
-<script src="game.js?v=3"></script>
+<script src="sim.js?v=6"></script>
+<script src="plans.js?v=4"></script>
+<script src="game.js?v=4"></script>
 <script src="support.js?v=6" data-ja="スムージー" data-en="a smoothie"></script>
 </body>
 </html>
