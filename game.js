@@ -136,7 +136,7 @@
     Snd.init(); bed(true)
     const seed = seedNext ?? (Date.now() % 1e9); seedNext = null
     rvRun++; RV = null; drum(false)
-    S = Sim.create(D, seed); busy = false; eve = false; $('#memo').hidden = true; dateDone = null; tutStep = 0; tutAt = 0; curMe = null; $('#meNote').classList.remove('in')
+    S = Sim.create(D, seed); busy = false; eve = false; likeShown = 0; $('#dateScene').hidden = true; $('#memo').hidden = true; dateDone = null; tutStep = 0; tutAt = 0; curMe = null; $('#meNote').classList.remove('in')
     show('vPlay'); render(); say(lang === 'ja' ? '今日から、自分を変える' : 'Today, I start changing')
     $('#mirror').classList.remove('glow'); requestAnimationFrame(tut)
     window.TM && TM.start()
@@ -164,6 +164,9 @@
     say(line, cls)
     if (tutStep < 4) { tutNext(); tut() }
     eve = true; render(); habit(Sim.isSlow(a))
+    const sc = sceneFor(a, o); if (sc) scene(`img/${sc}.webp?${V}`, a === 'skin' ? 'soft' : '')
+    if (a === 'skin') { const mm = $('#mirror'); mm.classList.remove('soft'); void mm.offsetWidth; mm.classList.add('soft') }
+    if (a === 'makeup' || a === 'selfie') { likesFx(likeShown, S.likes); likeShown = S.likes }
     if (S.choice) { await wait(500); openMemo(); busy = false; return }
     if (o.date) { await wait(650); await dateCard(o.date) }
     await afterDay(o)
@@ -181,13 +184,58 @@
   }
   // マッチングアプリで会う日。結果を1枚のメモで見せる（つぎへ で閉じる）
   let dateDone = null
+  // カフェで向かい合う場面。相手の表情（目が輝く・ふつう・固まる・心配する）で結果を見せる
   function dateCard(res) {
     window.__dates = (window.__dates || []).concat(res)
-    $('#memoHead').textContent = tx(D.DATE.head); $('#memoHead').hidden = false
-    $('#memoTxt').textContent = tx(D.DATE[res]); $('#bC0').textContent = tx(D.DATE.ok1); $('#bC1').hidden = true
-    $('#memoCard').className = 'date ' + res
-    $('#memo').hidden = false; Sfx('date'); Sfx(res === 'great' ? 'mid' : res === 'ok' ? 'tap' : 'lose')
+    const ds = $('#dateScene'), img = $('#dateImg')
+    $('#dateHead').textContent = tx(D.DATE.head)
+    if (res === 'miss') { img.hidden = true; $('#dateSay').textContent = tx(D.DATE.miss) }
+    else { img.hidden = false; img.src = `img/date_${res}.webp?${V}`; $('#dateSay').textContent = tx(D.DATE[res]) }
+    $('#bDate').textContent = tx(D.DATE.ok1)
+    ds.className = res; ds.hidden = false
+    Sfx('date'); Sfx(res === 'great' ? 'mid' : res === 'ok' ? 'tap' : 'lose')
     return new Promise(r => { dateDone = r })
+  }
+  // 毎日の場面（しんどい方はしんどそうに）。部屋の上に写真のように少し出て消える。押す操作は邪魔しない
+  let sceneT = 0
+  function scene(src, cls = '') {
+    const el = $('#scene'); clearTimeout(sceneT)
+    $('#sceneImg').src = src; el.className = 'in ' + cls; el.hidden = false
+    window.__scenes = (window.__scenes || []).concat(src.replace(/^img\/|\.webp.*$/g, ''))
+    sceneT = setTimeout(() => { el.className = '' }, 1700 * Math.max(FAST, 0.05))
+  }
+  function sceneFor(a, o) {
+    if (o.mile) return null
+    if (o.msgs.includes('sore')) return 'sc_run'
+    if (a === 'run') return 'me_run'
+    if (a === 'cook') return S.n.cook <= 3 ? 'sc_cook0' : 'sc_cook1'
+    if (a === 'study') return 'sc_study'
+    if (a === 'work') return 'sc_work'
+    if (a === 'sleep') return 'sc_sleep'
+    if (a === 'skin') return 'sc_skin'
+    return null
+  }
+  // 楽な方は派手に: スマホの通知が積み上がり、ハートが飛び、いいねの数が跳ねる。鏡がキラキラ
+  let likeShown = 0
+  function likesFx(from, to) {
+    const box = $('#notif'), u = U(), n = 3
+    box.innerHTML = ''; box.className = 'in'
+    for (let i = 0; i < n; i++) {
+      const v = Math.round(from + (to - from) * (i + 1) / n)
+      const c = document.createElement('div'); c.className = 'nt'; c.style.animationDelay = (i * 0.18) + 's'
+      c.innerHTML = `<svg viewBox="0 0 20 20"><path d="M10 17C4 12 2 9 3 6c1-3 5-3 7 0 2-3 6-3 7 0 1 3-1 6-7 11z"/></svg><b>${v.toLocaleString()}</b><span>${u.likes}</span>`
+      box.appendChild(c)
+    }
+    const r = $('#mirror .mf').getBoundingClientRect()
+    for (let i = 0; i < 7; i++) {
+      const h = document.createElement('div'); h.className = 'heart'
+      h.style.left = (r.left + r.width * (0.2 + Math.random() * 0.6)) + 'px'; h.style.top = (r.top + r.height * 0.6) + 'px'; h.style.animationDelay = (i * 0.08) + 's'
+      h.innerHTML = '<svg viewBox="0 0 20 20"><path d="M10 17C4 12 2 9 3 6c1-3 5-3 7 0 2-3 6-3 7 0 1 3-1 6-7 11z"/></svg>'
+      document.body.appendChild(h); setTimeout(() => h.remove(), 1600)
+    }
+    const m = $('#mirror'); m.classList.remove('sparkle'); void m.offsetWidth; m.classList.add('sparkle')
+    clearTimeout(box._t); box._t = setTimeout(() => { box.className = '' }, 1900 * Math.max(FAST, 0.05))
+    window.__likesFx = (window.__likesFx || 0) + 1
   }
   async function afterDay(o) {
     await wait(380)
@@ -210,7 +258,7 @@
     if (S.choice === 'cat') Sfx('meow'); else Sfx('ev')
   }
   async function choose(i) {
-    if (dateDone) { const r = dateDone; dateDone = null; $('#memo').hidden = true; Sfx('tap'); r(); return }
+    if (dateDone) { const r = dateDone; dateDone = null; $('#memo').hidden = true; $('#dateScene').hidden = true; Sfx('tap'); r(); return }
     if (!S || !S.choice) return
     if (busy) return
     busy = true
@@ -519,7 +567,7 @@
   $('#chText').addEventListener('blur', () => setTimeout(fitChat, 60))
   on('#chSend', () => sendMine())
   on('#bAff', () => { window.TM && TM.aff && TM.aff() })
-  on('#bC0', () => choose(0)); on('#bC1', () => choose(1))
+  on('#bC0', () => choose(0)); on('#bC1', () => choose(1)); on('#bDate', () => choose(0))
   on('#bNext', () => { Sfx('tap'); result() })
   on('#bLang', () => { lang = lang === 'ja' ? 'en' : 'ja'; store.set('jmg_lang', lang); applyLang() })
   on('#bMute', () => { Snd.init(); Snd.setMute(!Snd.muted); store.set('jmg_mute', Snd.muted ? '1' : '0'); muteIcon() })
@@ -536,7 +584,7 @@
     state: () => S && { day: S.day, done: S.done, soji: S.soji, temp: S.temp, naka: S.naka, mori: S.mori, money: S.money, hp: S.hp, choice: S.choice, who: S.who, n: S.n, sleeps: S.sleeps, chain: S.chain, maxChain: S.maxChain, gap: S.gap, pend: S.pend, miles: S.miles, dates: S.dates, hosp: S.hosp, fastRun: S.fastRun, noMoney: S.noMoney, cat: S.cat, granny: S.granny, threads: S.threads, final: S.final },
     dateOpen: () => !!dateDone, start: () => start(), eve: () => eve,
     raw: () => S, busy: () => busy, setSeed: n => { seedNext = n }, fast: f => { FAST = f },
-    itemXY: a => { const el = a === 'c0' ? $('#bC0') : a === 'c1' ? $('#bC1') : $(`.obj[data-a="${a}"]`); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.5, w: r.width, h: r.height } },
+    itemXY: a => { const el = a === 'c0' ? (dateDone ? $('#bDate') : $('#bC0')) : a === 'c1' ? $('#bC1') : $(`.obj[data-a="${a}"]`); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.5, w: r.width, h: r.height } },
     setLang: l => { lang = l; applyLang() }, book: () => [...book], setBook: ids => { book.clear(); ids.forEach(i => book.add(i)) },
     cellXY: id => { const r = $(`.cell[data-id="${id}"]`).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height } },
     door: () => RV && { p: RV.p, ready: RV.ready, opened: RV.opened, anim: RV.anim, peeping: RV.peeping, peeked: RV.peeked, knocks: RV.knocks, peeps: RV.peeps, veil: $('#portrait').classList.contains('veil') },
@@ -545,6 +593,7 @@
   }
 
   // ---- 読み込み（最初の画面に要る絵を数えてバーを進める）
+  const SCENES = ['sc_run', 'sc_cook0', 'sc_cook1', 'sc_study', 'sc_work', 'sc_sleep', 'sc_skin', 'date_ok', 'date_great', 'date_fail', 'date_pale']
   const CORE = ['room', 'o_mirror', 'me0', 'o_wallet', 'shelf0', 'dress0', 'o_shoes', 'o_pan', 'o_laptop', 'o_bed', 'o_nail', 'o_skin', 'o_ring', 'o_scale', 'shelf2']
   let got = 0
   const hideLoad = () => { const l = $('#loading'); if (l.dataset.gone) return; l.dataset.gone = 1; l.style.opacity = 0; l.style.pointerEvents = 'none'; setTimeout(() => { l.hidden = true }, 360) }
@@ -552,7 +601,7 @@
   Promise.all(CORE.map(n => loadImg(`img/${n}.webp?${V}`).then(() => { got++; $('#loadBar i').style.width = (got / CORE.length * 100) + '%' }))).then(() => {
     hideLoad(); window.__jmgReady = true
     // 残りは裏で読む（段階の絵と恋人）
-    const rest = ['shelf1', 'shelf2', 'shelf3', 'dress1', 'dress2', 'dress3'].concat(Sim.MIRRORS.filter(m => m !== 'me0'), D.P.map(p => 'p_' + p.id))
+    const rest = ['shelf1', 'shelf2', 'shelf3', 'dress1', 'dress2', 'dress3'].concat(SCENES, Sim.MIRRORS.filter(m => m !== 'me0'), D.P.map(p => 'p_' + p.id))
     rest.forEach((n, i) => setTimeout(() => loadImg(`img/${n}.webp?${V}`), 200 + i * 60))
   })
   setTimeout(() => { if (!window.__jmgReady) { hideLoad(); window.__jmgReady = true } }, 12000)

@@ -75,7 +75,7 @@
     else if (a === 'study') { if (S.hp < 15) { S.pend.naka += 1; out.msgs.push('nap') } else { S.hp -= 15; S.pend.naka += D.PEND.study } }
     else if (a === 'work') { S.money += 8000 * (x2 ? 2 : 1); S.hp -= 25; S.naka += 1; S.pend.naka += D.PEND.work }
     // メイクはその日だけ大きく上がり、寝ると落ちる（回数で少し上手くなる）
-    else if (a === 'makeup') { S.mori += 14 + Math.min(S.skill, 10); S.skill++ }
+    else if (a === 'makeup') { S.mori += 14 + Math.min(S.skill, 10); S.skill++; S.likes += 20 + S.mori * 2 }
     // スキンケアは少しずつ。素地もほんの少し本当に上がる
     else if (a === 'skin') { S.mori += 6 * (x2 ? 2 : 1); S.soji += 1; S.hp += 5 }
     else if (a === 'selfie') { S.kakou += 8; S.likes += 40 + S.mori * 3 + S.kakou * 2; S.hp += 5 }

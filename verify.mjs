@@ -40,7 +40,7 @@ const overflow = p => p.evaluate(() => {
 const fit = q => q.evaluate(() => {
   const H = innerHeight, de = document.documentElement, over = []
   if (de.scrollHeight > H + 1) over.push('page:' + de.scrollHeight)
-  for (const el of document.querySelectorAll('main:not([hidden]) button, main:not([hidden]) .lab, main:not([hidden]) canvas, .ovl:not([hidden]) button, .ovl:not([hidden]) .cell, #tmSupport, #stage, #epi, #chat:not([hidden]) button, #chat:not([hidden]) .chFoot, #affBox:not([hidden]) a, #affBox:not([hidden]) small')) {
+  for (const el of document.querySelectorAll('main:not([hidden]) button, main:not([hidden]) .lab, main:not([hidden]) canvas, .ovl:not([hidden]) button, .ovl:not([hidden]) .cell, #tmSupport, #stage, #epi, #chat:not([hidden]) button, #chat:not([hidden]) .chFoot, #dateScene:not([hidden]) button, #dateScene:not([hidden]) .dsBox, #affBox:not([hidden]) a, #affBox:not([hidden]) small')) {
     if (!el.offsetParent && el.id !== 'tmSupport') continue; if (el.closest('[hidden]')) continue
     const r = el.getBoundingClientRect(); if (!r.height) continue
     if (r.bottom > H + 1 || r.top < -1) over.push((el.id || el.className || el.textContent.slice(0, 6)) + ':' + Math.round(r.top) + '-' + Math.round(r.bottom))
@@ -287,18 +287,19 @@ await t('会う日（10日目）: 盛りと加工が素地より高すぎると�
   await q.evaluate(() => { jmg.setSeed(82); jmg.fast(0.02); jmg.start() })
   await clean(); await q.evaluate(() => { const S = jmg.raw(); S.day = 10; S.soji = 20; S.kakou = 30; S.mori = 10 })
   await tapXY(q, 'makeup'); await q.waitForFunction(() => jmg.dateOpen())
-  const r = await q.evaluate(() => ({ txt: document.querySelector('#memoTxt').textContent, head: document.querySelector('#memoHead').textContent, one: document.querySelector('#bC1').hidden, day: jmg.state().day }))
+  await q.waitForTimeout(100)
+  const r = await q.evaluate(() => ({ txt: document.querySelector('#dateSay').textContent, head: document.querySelector('#dateHead').textContent, one: !document.querySelector('#dateScene').hidden, img: document.querySelector('#dateImg').getAttribute('src'), ok: document.querySelector('#dateImg').naturalWidth > 100, day: jmg.state().day }))
   await q.screenshot({ path: ROOT + '/shots/v-date-fail-real.png' })
   await tapXY(q, 'c0'); await q.waitForFunction(() => !jmg.busy())
-  const after = await q.evaluate(() => ({ day: jmg.state().day, dates: jmg.state().dates, memo: document.querySelector('#memo').hidden }))
-  expect(/写真と違う/.test(r.txt) && /会う日/.test(r.head) && r.one && after.dates[0] === 'fail' && after.day === 11 && after.memo, JSON.stringify({ r, after }))
+  const after = await q.evaluate(() => ({ day: jmg.state().day, dates: jmg.state().dates, memo: document.querySelector('#dateScene').hidden }))
+  expect(/写真と/.test(r.txt) && /会う日/.test(r.head) && r.one && /date_fail/.test(r.img) && r.ok && after.dates[0] === 'fail' && after.day === 11 && after.memo, JSON.stringify({ r, after }))
 })
 await t('会う日（20日目）: 素地が高いと「写真より実物がいい」', async () => {
   await q.evaluate(() => { const S = jmg.raw(); S.day = 20; S.soji = 60; S.kakou = 0; S.mori = 0; S.hp = 100; S.choice = null; S.forced = 0 })
   await tapXY(q, 'run'); await q.waitForFunction(() => jmg.dateOpen())
-  const txt = await q.textContent('#memoTxt'); await tapXY(q, 'c0'); await q.waitForFunction(() => !jmg.busy())
+  await q.waitForTimeout(100); await q.screenshot({ path: ROOT + '/shots/v-date-great-real.png' }); const txt = await q.textContent('#dateSay') + (await q.getAttribute('#dateImg', 'src')); await tapXY(q, 'c0'); await q.waitForFunction(() => !jmg.busy())
   const st = await q.evaluate(() => jmg.state().dates)
-  expect(/実物のほうがいい/.test(txt) && st.at(-1) === 'great', JSON.stringify({ txt, st }))
+  expect(/実物のほうが/.test(txt) && /date_great/.test(txt) && st.at(-1) === 'great', JSON.stringify({ txt, st }))
 })
 await t('「やめたい」: 走って3回目に誘惑が出る（やめると丸が1日ぶん切れる）', async () => {
   const r = await q.evaluate(() => { const S = Sim.create(D, 90); S.events = []; let ev = null; for (let i = 0; i < 3; i++) { S.hp = 100; S.sore = false; const o = Sim.act(D, S, 'run'); if (o.ev) ev = o.ev } const g0 = S.gap; Sim.choose(D, S, 0); return { ev, g0, gap: S.gap, chain: S.chain } })
@@ -333,6 +334,25 @@ await t('いつ効くかは読めない（丸のカレンダーも無い・節�
 await t('推し活は行動に無く、30日で5回のできごと（乗ると推しの回数とお金・体力）', async () => {
   const r = await q.evaluate(() => { const S = Sim.create(D, 4321); const ev = S.events.filter(e => /^oshi/.test(e || '')).length; S.events = []; S.deals = []; S.events[S.day] = 'oshi1'; S.money = 20000; S.hp = 80; Sim.act(D, S, 'study'); const c = S.choice; Sim.choose(D, S, 0); return { act: 'oshi' in D.ACT, ev, c, yes: S.oshiYes, money: S.money, hp: S.hp, btn: !!document.querySelector('.obj[data-a="oshi"]') } })
   expect(!r.act && !r.btn && r.ev === 5 && r.c === 'oshi1' && r.yes === 1 && r.money === 12000 && r.hp === 55, JSON.stringify(r)); return r
+})
+await t('毎日なにか起きる: しんどい方は場面の絵（筋肉痛・焦げ→上手・寝落ち・帰宅・我慢）、メイクと加工自撮りは通知とハート', async () => {
+  await q.evaluate(() => { jmg.setSeed(4400); jmg.fast(0.05); jmg.start(); window.__scenes = []; window.__likesFx = 0; const S = jmg.raw(); S.events = []; S.deals = []; S.money = 99999 })
+  for (const a of ['run', 'cook', 'study', 'work', 'makeup', 'cook', 'sleep', 'cook', 'cook', 'skin', 'selfie']) { await q.evaluate(() => { jmg.raw().hp = 100 }); await tapDay(a) }
+  const r = await q.evaluate(() => ({ sc: window.__scenes, likes: window.__likesFx, imgs: [...new Set(window.__scenes)].length }))
+  const ok = await q.evaluate(async list => { const bad = []; for (const n of list) { const i = new Image(); i.src = `img/${n}.webp?v=1`; try { await i.decode(); if (i.naturalWidth < 300) bad.push(n) } catch (e) { bad.push(n) } } return bad }, ['sc_run', 'sc_cook0', 'sc_cook1', 'sc_study', 'sc_work', 'sc_sleep', 'sc_skin', 'date_ok', 'date_great', 'date_fail', 'date_pale'])
+  const want = ['me_run', 'sc_run', 'sc_study', 'sc_work', 'sc_sleep', 'sc_cook1', 'sc_skin']
+  expect(want.every(w => r.sc.includes(w)) && r.sc.includes('sc_cook0') && r.likes === 2 && !ok.length, JSON.stringify({ r, ok })); return r.sc.join(',')
+})
+await t('メイク・加工自撮りの瞬間を撮る（通知・ハート・キラキラ）', async () => {
+  await q.evaluate(() => { jmg.fast(1); const S = jmg.raw(); S.events = []; S.choice = null }); await tapXY(q, 'selfie'); await q.waitForTimeout(500)
+  const r = await q.evaluate(() => ({ nt: document.querySelectorAll('#notif.in .nt').length, hearts: document.querySelectorAll('.heart').length, sp: document.querySelector('#mirror').classList.contains('sparkle') }))
+  await q.screenshot({ path: ROOT + '/shots/v-likes.png' }); await q.waitForFunction(() => !jmg.busy()); await q.evaluate(() => jmg.fast(0.02))
+  expect(r.nt === 3 && r.hearts >= 5 && r.sp, JSON.stringify(r)); return r
+})
+await t('しんどい方の場面を撮る（自炊）', async () => {
+  await q.evaluate(() => { jmg.fast(1); const S = jmg.raw(); S.events = []; S.choice = null; S.hp = 100 }); await tapXY(q, 'cook'); await q.waitForTimeout(500)
+  const v = await q.evaluate(() => document.querySelector('#scene').classList.contains('in')); await q.screenshot({ path: ROOT + '/shots/v-scene-cook.png' }); await q.waitForFunction(() => !jmg.busy()); await q.evaluate(() => jmg.fast(0.02))
+  expect(v, v)
 })
 await t('決め事: 整形は行動に無い・体重の数字を出さない', async () => {
   const r = await q.evaluate(() => { const acts = JSON.stringify(D.ACT) + JSON.stringify(D.UI); const all = JSON.stringify(D) + JSON.stringify(CHATS); return { seikei: /整形/.test(acts), kg: /\d+\s?(kg|キロ)/i.test(all), weight: /体重/.test(all) } })
@@ -567,6 +587,8 @@ for (const [w, h, name] of [[360, 640, 'small'], [390, 844, 'phone'], [430, 932,
   // できごとの2択
   await s.evaluate(() => { const S = jmg.raw(); S.events[S.day] = 'cat' }); await tapXY(s, 'sleep', true); await s.waitForSelector('#memo:not([hidden])')
   views.memo = await fit(s); await s.screenshot({ path: `${ROOT}/shots/fit-${name}-memo.png` }); await tapXY(s, 'c0', true); await s.waitForFunction(() => !jmg.busy())
+  await s.evaluate(() => { const S = jmg.raw(); S.day = 10; S.events = []; S.choice = null; S.forced = 0; S.hp = 100; S.mori = 0; S.kakou = 0; jmg.fast(1) }); await tapXY(s, 'study', true); await s.waitForFunction(() => jmg.dateOpen()); await s.waitForTimeout(700)
+  views.date = await fit(s); await s.screenshot({ path: `${ROOT}/shots/fit-${name}-date.png` }); await tapXY(s, 'c0', true); await s.waitForFunction(() => !jmg.busy()); await s.evaluate(() => jmg.fast(0.02))
   const r = await playPlan(s, 'takeshi', { touch: true, seed: 5, cont: true, open: 'none' })
   await s.evaluate(() => jmg.fast(1)); await s.waitForTimeout(500)
   views.door = await fit(s); await s.screenshot({ path: `${ROOT}/shots/fit-${name}-door.png` })

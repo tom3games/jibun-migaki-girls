@@ -51,3 +51,10 @@ for n in P:
 for n in ['me0'] + ['me_' + k for k in ['soji1', 'soji2', 'mori1', 'mori2', 'naka1', 'naka2', 'allhigh', 'run', 'tired', 'fast', 'hosp', 'oshi', 'selfie']]:
     if os.path.exists(RAW + n + '.png'):
         im = Image.open(RAW + n + '.png').convert('RGB'); w, h = im.size; im = im.crop((0, int(h * 0.04), w, int(h * 0.04) + w)); im.thumbnail((360, 360)); save(im, n, 78)
+# 毎日の場面（横長）とデートの相手（縦長）。2026-11-24
+for n in ['sc_run', 'sc_cook0', 'sc_cook1', 'sc_study', 'sc_work', 'sc_sleep', 'sc_skin']:
+    if os.path.exists(RAW + n + '.png'):
+        im = Image.open(RAW + n + '.png').convert('RGB'); im.thumbnail((900, 600)); save(im, n, 76)
+for n in ['date_ok', 'date_great', 'date_fail', 'date_pale']:
+    if os.path.exists(RAW + n + '.png'):
+        im = Image.open(RAW + n + '.png').convert('RGB'); im.thumbnail((640, 960)); save(im, n, 78)
