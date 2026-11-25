@@ -39,6 +39,7 @@
   const muteIcon = () => { $('#icoWave').style.display = Snd.muted ? 'none' : '' }
 
   // ---- 状態
+  let shown = []   // 画面に出ている2択（日めくりをめくるまでは、その日の2枚のまま）
   let S = null, busy = false, seedNext = null, tutStep = 0, curMe = null, eve = false   // eve: 行動のあと、日めくりをめくるまでは「その日の夜」（盛りはまだ落ちていない）
   const book = new Set((store.get('jmg_book') || '').split(',').filter(Boolean))
   const PMAP = Object.fromEntries(D.P.map(p => [p.id, p]))
@@ -54,6 +55,7 @@
     $('#hpBar').innerHTML = Array.from({ length: 10 }, (_, i) => `<i class="${i < Math.ceil(S.hp / 10) ? '' : 'off'}"></i>`).join('')
     $('#hpNote').classList.toggle('low', S.hp < 30)
     $('#money').textContent = yen(S.money)
+    $('#likeNum').textContent = S.likes.toLocaleString()
     const mori = eve && S.moriEve != null ? S.moriEve : S.mori
     $('#gNaka').textContent = `${u.naka} ${S.naka}`; $('#gSoji').textContent = `${u.soji} ${S.soji + S.temp}`; $('#gMori').textContent = `${u.mori} ${mori}`
     $('#shelfImg').src = `img/shelf${stage(S.naka, [35, 55, 75])}.webp?${V}`
@@ -69,11 +71,12 @@
     for (const b of $$('.obj[data-a]')) {
       const a = b.dataset.a, A = D.ACT[a], x2 = dl && dl.act === a, c = Sim.cost(D, S, a)
       const sub = c < 0 ? yen(-c) : D.SUB[a] ? tx(D.SUB[a]) : ''
-      b.querySelector('.lab').innerHTML = `${tx(A)}<small>${sub}</small>`
+      const oi = shown.indexOf(a); b.hidden = oi < 0; b.style.order = Math.max(0, oi)
+      b.querySelector('.lab').innerHTML = `${tx(D.CARD[a])}<small>${sub}</small>`
       b.classList.toggle('deal', !!x2)
       b.querySelector('.lab').dataset.deal = x2 ? tx(dl) : ''
       b.classList.toggle('poor', c < 0 && S.money + c < 0)
-      b.setAttribute('aria-label', tx(A))
+      b.setAttribute('aria-label', tx(D.CARD[a]))
     }
     habit()
     calPage()
@@ -124,7 +127,7 @@
     const u = U(), h = $('#hand'), tip = $('#tip')
     clearTimeout(tutTimer)
     if (tutStep >= 4 || store.get('jmg_tut') === '1') { h.hidden = true; tip.hidden = true; return }
-    const T = [[u.tut1, '#oRun'], [u.tut2, '#oStudy'], [u.tut3, '#oMakeup'], [u.tut4, '#cal']][tutStep]
+    const T = [[u.tut1, '#floor .obj:not(.q):not([hidden])'], [u.tut2, '#floor .obj:not(.q):not([hidden])'], [u.tut3, '#floor .obj.q:not([hidden])'], [u.tut4, '#cal']][tutStep]
     let t = T[0]; if (!touch) t = t.replace('タップ', 'クリック').replace('Tap', 'Click')
     tip.textContent = t; tip.hidden = false; if (!tutAt) tutAt = performance.now()
     const r = $(T[1]).getBoundingClientRect(); h.hidden = false; h.style.left = (r.left + r.width / 2 - 8) + 'px'; h.style.top = (r.top + r.height * 0.45) + 'px'
@@ -136,16 +139,18 @@
     Snd.init(); bed(true)
     const seed = seedNext ?? (Date.now() % 1e9); seedNext = null
     rvRun++; RV = null; drum(false)
-    S = Sim.create(D, seed); busy = false; eve = false; likeShown = 0; $('#dateScene').hidden = true; $('#memo').hidden = true; dateDone = null; tutStep = 0; tutAt = 0; curMe = null; $('#meNote').classList.remove('in')
+    S = Sim.create(D, seed); shown = S.offer; for (const b of $$('#floor .obj')) b.classList.remove('picked', 'unpicked'); busy = false; eve = false; likeShown = 0; $('#dateScene').hidden = true; $('#memo').hidden = true; dateDone = null; tutStep = 0; tutAt = 0; curMe = null; $('#meNote').classList.remove('in')
     show('vPlay'); render(); say(lang === 'ja' ? '今日から、自分を変える' : 'Today, I start changing')
     $('#mirror').classList.remove('glow'); requestAnimationFrame(tut)
     window.TM && TM.start()
   }
   async function doAct(a, btn) {
     if (busy || !S || S.done || S.choice) return
+    if (!shown.includes(a)) return
     const u = U(), o = Sim.act(D, S, a)
     if (!o.ok) { if (o.why === 'money') { say(u.noMoney, 'bad'); btn.classList.remove('bump'); void btn.offsetWidth; btn.classList.add('bump') } return }
     busy = true
+    for (const b of $$('#floor .obj:not([hidden])')) b.classList.add(b === btn ? 'picked' : 'unpicked')
     Sfx(a); btn.classList.remove('bump'); void btn.offsetWidth; btn.classList.add('bump')
     // 遅れて効く方は、節目の日以外は何も出さない（数字が動かない）
     const d = Object.assign({}, o.d); if (o.gain) { d.soji -= o.gain.soji; d.naka -= o.gain.naka }
@@ -166,7 +171,7 @@
     eve = true; render(); habit(Sim.isSlow(a))
     const sc = sceneFor(a, o); if (sc) scene(`img/${sc}.webp?${V}`, a === 'skin' ? 'soft' : '')
     if (a === 'skin') { const mm = $('#mirror'); mm.classList.remove('soft'); void mm.offsetWidth; mm.classList.add('soft') }
-    if (a === 'makeup' || a === 'selfie') { likesFx(likeShown, S.likes); likeShown = S.likes }
+    if (!Sim.isSlow(a)) { likesFx(likeShown, S.likes); likeShown = S.likes }
     if (S.choice) { await wait(500); openMemo(); busy = false; return }
     if (o.date) { await wait(650); await dateCard(o.date) }
     await afterDay(o)
@@ -235,6 +240,7 @@
     }
     const m = $('#mirror'); m.classList.remove('sparkle'); void m.offsetWidth; m.classList.add('sparkle')
     clearTimeout(box._t); box._t = setTimeout(() => { box.className = '' }, 1900 * Math.max(FAST, 0.05))
+    const lt = $('#likeTot'); lt.classList.remove('bump'); void lt.offsetWidth; lt.classList.add('bump')
     window.__likesFx = (window.__likesFx || 0) + 1
   }
   async function afterDay(o) {
@@ -246,6 +252,7 @@
     if (o.missed) say(tx(D.DATE.miss), 'bad')
     if (o.rebound) { say(U().rebound, 'bad'); Sfx('bad') }
     if (o.final) say(U().final, 'mile')
+    shown = S.offer; for (const b of $$('#floor .obj')) { b.hidden = true; b.classList.remove('picked', 'unpicked', 'bump') } void $('#floor').offsetWidth
     render(); tut()
     if (S.done) { await wait(o.final ? 1400 : 700); busy = false; return reveal() }
     busy = false
@@ -584,6 +591,8 @@
     state: () => S && { day: S.day, done: S.done, soji: S.soji, temp: S.temp, naka: S.naka, mori: S.mori, money: S.money, hp: S.hp, choice: S.choice, who: S.who, n: S.n, sleeps: S.sleeps, chain: S.chain, maxChain: S.maxChain, gap: S.gap, pend: S.pend, miles: S.miles, dates: S.dates, hosp: S.hosp, fastRun: S.fastRun, noMoney: S.noMoney, cat: S.cat, granny: S.granny, threads: S.threads, final: S.final },
     dateOpen: () => !!dateDone, start: () => start(), eve: () => eve,
     raw: () => S, busy: () => busy, setSeed: n => { seedNext = n }, fast: f => { FAST = f },
+    // 検証で決まった行動を試す時だけ、その物を今日の2択に入れる
+    offer: a => { if (D.ACT[a] && !S.offer.includes(a)) { S.offer[Sim.isSlow(a) ? 0 : 1] = a; shown = S.offer; render() } }, offers: () => S.offer.slice(),
     itemXY: a => { const el = a === 'c0' ? (dateDone ? $('#bDate') : $('#bC0')) : a === 'c1' ? $('#bC1') : $(`.obj[data-a="${a}"]`); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.5, w: r.width, h: r.height } },
     setLang: l => { lang = l; applyLang() }, book: () => [...book], setBook: ids => { book.clear(); ids.forEach(i => book.add(i)) },
     cellXY: id => { const r = $(`.cell[data-id="${id}"]`).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height } },

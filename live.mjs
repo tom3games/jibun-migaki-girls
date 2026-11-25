@@ -22,7 +22,7 @@ for (const [name, bt, opts] of [['chromium', chromium, {}], ['webkit', webkit, {
   await p.waitForFunction(() => window.__jmgReady, null, { timeout: 15000 })
   // ---- 遊びの通し: 本物のタップで30日（bot の計画）→ 招待状まで ----
   const touch = !!opts.hasTouch
-  const tapXY = async a => { const xy = await p.evaluate(k => jmg.itemXY(k), a); if (touch) await p.touchscreen.tap(xy.x, xy.y); else await p.mouse.click(xy.x, xy.y) }
+  const tapXY = async a => { const xy = await p.evaluate(k => (jmg.offer(k), jmg.itemXY(k)), a); if (touch) await p.touchscreen.tap(xy.x, xy.y); else await p.mouse.click(xy.x, xy.y) }
   const plan = await p.evaluate(() => D.P[0].id)
   await p.evaluate(() => jmg.fast(0.02))
   if (touch) await p.tap('#bStart'); else await p.click('#bStart')

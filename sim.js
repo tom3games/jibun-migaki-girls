@@ -18,8 +18,6 @@
       n: {}, sleeps: 0, cat: 0, granny: 0, forced: 0, forcedWhy: '', choice: null, log: [], deals: [], events: [], final: null,
     }
     for (const k in D.ACT) S.n[k] = 0
-    // その日のおすすめ（3割）。会う日には出さない
-    for (let d = 1; d <= D.DAYS; d++) S.deals[d] = (!D.DATES.includes(d) && r() < 0.3) ? Math.floor(r() * D.DEALS.length) : -1
     // できごと: 猫とおばあちゃんは半分の回で4回ずつ来る。それ以外の日は3割で何か起きる。会う日には起きない
     const free = []; for (let d = 2; d <= D.DAYS - 1; d++) if (!D.DATES.includes(d)) free.push(d)
     const take = () => free.splice(Math.floor(r() * free.length), 1)[0]
@@ -29,10 +27,23 @@
     for (let i = 0; i < 5; i++) S.events[take()] = 'oshi' + (1 + Math.floor(r() * 3))
     const W = D.POOL.reduce((a, b) => a + b[1], 0)
     for (const d of free) if (r() < 0.3) { let x = r() * W; for (const [k, w] of D.POOL) { if ((x -= w) < 0) { S.events[d] = k; break } } }
-    S.r = r
+    S.r = r; S.ro = rng(Math.imul(seed ^ 0x5bd1e995, 2654435761) >>> 0); for (let i = 0; i < 12; i++) S.ro(); deal2(D, S)
     return S
   }
 
+  // 毎日の2択（2026-11-25 本人「毎日2択で」）: しんどい方と楽な方を1枚ずつ。よく選ぶ物ほど出やすい
+  function deal2(D, S) {
+    const pick = ks => { let W = 0; const w = ks.map(k => { const v = (D.OFFER.base[k] || 1) + S.n[k] * D.OFFER.habit + (k === 'fast' && S.temp > 0 ? D.OFFER.fastOn : 0); W += v; return v }); let x = S.ro() * W; for (let i = 0; i < ks.length; i++) if ((x -= w[i]) < 0) return ks[i]; return ks[ks.length - 1] }
+    let slow = Object.keys(SLOW), easy = Object.keys(D.ACT).filter(k => !SLOW[k])
+    // 体力が無い日は早寝だけ。筋肉痛の日は運動を出さない。疲れている日は重い物を出さない
+    if (S.hp < 35) slow = ['sleep']
+    else { if (S.sore || S.hp < 45) slow = slow.filter(k => k !== 'run'); if (S.hp < 45) slow = slow.filter(k => k !== 'work') }
+    if (S.money + (D.ACT.skin.money || 0) < 0) easy = easy.filter(k => k !== 'skin')
+    // 前の日と同じ組は出さない（ほかに出せる物がある時）
+    const old = S.offer || []; let a = pick(slow), b = pick(easy)
+    if (a === old[0] && b === old[1]) { if (easy.length > 1) b = pick(easy.filter(k => k !== b)); else if (slow.length > 1) a = pick(slow.filter(k => k !== a)) }
+    S.offer = [a, b]
+  }
   const deal = (D, S) => S.deals[S.day] >= 0 ? D.DEALS[S.deals[S.day]] : null
   const cost = (D, S, a) => { const A = D.ACT[a], dl = deal(D, S); let c = A.money || 0; if (c < 0 && dl && dl.act === a) c = Math.round(c / 2); return c }
   const next5 = (D, S) => D.MILES.find(m => m > S.chain) || null
@@ -77,10 +88,10 @@
     // メイクはその日だけ大きく上がり、寝ると落ちる（回数で少し上手くなる）
     else if (a === 'makeup') { S.mori += 14 + Math.min(S.skill, 10); S.skill++; S.likes += 20 + S.mori * 2 }
     // スキンケアは少しずつ。素地もほんの少し本当に上がる
-    else if (a === 'skin') { S.mori += 6 * (x2 ? 2 : 1); S.soji += 1; S.hp += 5 }
+    else if (a === 'skin') { S.mori += 6 * (x2 ? 2 : 1); S.soji += 1; S.hp += 5; S.likes += 20 + S.mori }
     else if (a === 'selfie') { S.kakou += 8; S.likes += 40 + S.mori * 3 + S.kakou * 2; S.hp += 5 }
     else if (a === 'fast') {
-      S.money += 1000; S.hp -= 15; S.fastRun++; S.fastTotal++; S.fastOff = 0; S.temp += D.FAST.gain
+      S.money += 1000; S.hp -= 15; S.fastRun++; S.fastTotal++; S.fastOff = 0; S.temp += D.FAST.gain; S.likes += 30 + S.temp * 2
       if (S.fastRun >= D.FAST.limit) { rebound(D, S, true); S.hosp++; S.lastHosp = S.day; S.forced = 2; S.forcedWhy = 'hosp'; out.msgs.push('hosp') }
       else if (S.fastRun === 2) out.msgs.push('slim')
     }
@@ -157,7 +168,7 @@
       slip(D, S, null); night(D, S, out, false); S.day++; out.skipped++
     }
     S.forced = 0; fix(S)
-    if (S.day > D.DAYS) { S.done = true; S.day = D.DAYS; finish(D, S, out) }
+    if (S.day > D.DAYS) { S.done = true; S.day = D.DAYS; finish(D, S, out) } else deal2(D, S)
   }
   // 30日目の夜。ためたまま節目に届かなかった分は少しだけ効く。断食の途中ならリバウンド
   function finish(D, S, out) {
@@ -169,7 +180,7 @@
   // 恋人を決める（上から順に）
   function judge(D, S) {
     const H = D.H, so = S.soji, na = S.naka
-    if (S.sleeps >= 16) return 'kuma'
+    if (S.sleeps >= D.KUMA && S.sleeps > S.n.run + S.n.cook + S.n.study + S.n.work) return 'kuma'
     // 猫とトメさんは隠し。出来事4回を全部選び、しかも一番上に届かなかった時だけ
     const top = so >= D.HH && na >= D.HH
     if (!top && S.cat >= 4) return 'cat'
@@ -188,8 +199,8 @@
     if (S.n.makeup >= 7 && so < 50) return 'ren'
     // 勉強と仕事ばかり（中身は高い・素地は低い）
     if (na >= H && so < 50 && S.n.study + S.n.work >= 14) return 'shikaku'
-    if (S.n.run >= 10 && so >= H - 10) return 'riku'
-    if (S.n.cook >= 9 && so >= H - 15) return 'minato'
+    if (S.n.run >= 7 && S.n.run >= S.n.cook && so >= H - 10) return 'riku'
+    if (S.n.cook >= 7 && so >= H - 15) return 'minato'
     if (so >= 50 || na >= 50) return 'tanaka'
     return 'takeshi'
   }
@@ -220,7 +231,7 @@
     return 'me0'
   }
   const MIRRORS = ['me0', 'me_soji1', 'me_soji2', 'me_mori1', 'me_mori2', 'me_naka1', 'me_naka2', 'me_allhigh', 'me_run', 'me_cook', 'me_tired', 'me_fast', 'me_hosp', 'me_oshi', 'me_selfie']
-  const api = { create, act, choose, judge, title, deal, cost, mirror, MIRRORS, isSlow, next5 }
+  const api = { create, deal2, act, choose, judge, title, deal, cost, mirror, MIRRORS, isSlow, next5 }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   root.Sim = api
 })(typeof window !== 'undefined' ? window : globalThis)

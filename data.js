@@ -13,8 +13,10 @@ window.D = {
   SORE: 8,         // 筋肉痛で多めに減る体力
   FAST: { gain: 10, limit: 5, loss: 6, hospLoss: 12 },   // 断食: 1日で見た目+10。5日目に倒れる。リバウンドで前より下がる
   DECAY: 0.45, SALON_KEEP: 18,   // 盛りは寝ると落ちる。サロンの後の4日はある程度もつ
+  KUMA: 11,
+  OFFER: { habit: 0.8, fastOn: 2, base: { run: 1.2, cook: 1.2, study: 1.5, work: 1, sleep: 0.6, makeup: 1.2, skin: 1.2, selfie: 1.2, fast: 0.35 } },   // 毎日の2択に出る重み（選んだ回数で出やすくなる）
   DATES: [10, 20], DATE_GAP: 20, DATE_GOOD: 50,
-  JIBUN_MONEY: 35000,
+  JIBUN_MONEY: 28000,
   // 行動は9つ（2026-11-24 本人「選択肢減りすぎ。美容は無しにして、メイクとスキンケアに分けて」）。上の段がしんどい方、下の段がすぐ効く方
   ACT: {
     run:    { ja: '運動', en: 'Run', slow: 1, snd: 'run' },
@@ -26,6 +28,11 @@ window.D = {
     skin:   { ja: 'スキンケア', en: 'Skincare', money: -3000, snd: 'skin' },
     selfie: { ja: '加工自撮り', en: 'Filter selfie', snd: 'selfie' },
     fast:   { ja: '断食', en: 'Fasting', snd: 'fast' },
+  },
+  // 2択のカードの言葉
+  CARD: {
+    run: { ja: '朝、走る', en: 'Go for a run' }, cook: { ja: '自炊する', en: 'Cook at home' }, study: { ja: '勉強する', en: 'Study' }, work: { ja: '残業する', en: 'Work late' }, sleep: { ja: '22時に寝る', en: 'Sleep by 10' },
+    makeup: { ja: 'メイクで盛る', en: 'Do full makeup' }, skin: { ja: '美容液を買う', en: 'Buy a serum' }, selfie: { ja: '加工自撮り', en: 'Filter a selfie' }, fast: { ja: 'ごはんを抜く', en: 'Skip meals' },
   },
   // 物の札の小さい字（効き目のヒント）
   SUB: {
@@ -144,11 +151,11 @@ window.D = {
       slim: '鏡の自分が細くなった！', mile: () => '続けた分が、まとめて効いた', reset: '続けた分が、全部消えた', rebound: 'リバウンドした', moriLost: '寝たら盛りが落ちた',
       chain: '続けた日', rest: n => n >= 2 ? 'あと1日休むと最初から' : '1日休んだ', dateDay: '会う日', dateSoon: n => `会う日まであと${n}日`,
       final: '30日目の夜。ためていた分が少しだけ効いた',
-      tut1: '物をタップすると1日たつ', tut2: '上の段は、あとで効く', tut3: '下の段は、すぐ効く', tut4: '30日後、誰かが来る',
+      tut1: '毎日、どちらか1つ選ぶ', tut2: '左は、あとで効く', tut3: '右は、すぐ効く', tut4: '30日後、誰かが来る',
       night: 'そして30日がたった', bell: 'ピンポーン', door: 'ドアの向こうに、誰かいる', who: 'ドアの前にいたのは', open: 'ドアを開ける', knock: 'コンコン',
       save: '画像を保存', post: 'Xでポスト', again: 'もう一回', toTitle: 'タイトルへ', next: 'つぎへ',
       invite: '結婚式のご案内', groom: 'あなた', and: 'と', unlocked: (a, b) => `${a} / ${b} 人`, locked: '？？？', hint: 'ヒント', 
-      howBody: ['毎日、部屋の物を1つタップして1日すごす。30日で自分を磨く。', '上の段はその日は何も変わらない。続けると、いつか突然まとめて効く。3日空くとやり直し。', '下の段はすぐ効く。でも寝ると落ちて、お金も減る。', '30日後、ドアの前に誰かが来る（全18人）。'],
+      howBody: ['毎日出てくる2つから、どちらか1つを選ぶ。30日で自分を磨く。', '左はしんどい方。その日は何も変わらない。続けると、いつか突然まとめて効く。3日空くとやり直し。', '右は楽な方。すぐ効いて、いいねも増える。でも寝ると落ちる。', 'よく選ぶ物ほど、また出てくる。', '30日後、ドアの前に誰かが来る（全18人）。'],
       credits: '音: Kenney / rubberduck / StarNinjas / Almitory / Kerzoven / artisticdude / wubitog / eXpl0it3r / Saaabaaato / cori / Iwan Sounds / stephan（CC0・Public domain）',
       privacy: 'プライバシー', postText: (p, t) => `30日自分を磨いたら、ドアの前にいたのは「${p}」でした。称号: ${t} #自分磨き30日 #バカゲー`,
       share: '結果', load: '身じたく中',
@@ -162,11 +169,11 @@ window.D = {
       slim: 'My reflection got slimmer!', mile: () => 'It all paid off at once', reset: 'All the saved-up effort is gone', rebound: 'Rebound', moriLost: 'Slept, and the glam wore off',
       chain: 'Streak', rest: n => n >= 2 ? 'One more day off resets' : 'Took a day off', dateDay: 'Date day', dateSoon: n => `Date in ${n} days`,
       final: 'Night 30. The saved-up effort paid off a little',
-      tut1: 'Tap an object to spend a day', tut2: 'Top row pays off later', tut3: 'Bottom row works now', tut4: 'In 30 days, someone comes',
+      tut1: 'Pick one each day', tut2: 'Left pays off later', tut3: 'Right works now', tut4: 'In 30 days, someone comes',
       night: '30 days later', bell: 'Ding-dong', door: "Someone's behind the door", who: 'At your door is', open: 'Open the door', knock: 'Knock knock',
       save: 'Save image', post: 'Post on X', again: 'Again', toTitle: 'Title', next: 'Next',
       invite: 'Wedding Invitation', groom: 'You', and: '&', unlocked: (a, b) => `${a} / ${b}`, locked: '???', hint: 'Hint', 
-      howBody: ['Each day, tap one object in your room. Glow up in 30 days.', 'The top row changes nothing that day. Keep at it and one day it all pays off at once. Skip 3 days and it resets.', 'The bottom row works right away, but wears off overnight and costs money.', 'On day 30, someone comes to your door (18 in all).'],
+      howBody: ['Each day you get two choices. Pick one. Glow up in 30 days.', 'Left is the hard one. It changes nothing that day. Keep at it and one day it all pays off at once. Skip 3 days and it resets.', 'Right is the easy one. It works right away and gets likes, but wears off overnight.', 'What you pick often comes up more often.', 'On day 30, someone comes to your door (18 in all).'],
       credits: 'Sounds: Kenney / rubberduck / StarNinjas / Almitory / Kerzoven / artisticdude / wubitog / eXpl0it3r / Saaabaaato / cori / Iwan Sounds / stephan (CC0 / Public domain)',
       privacy: 'Privacy', postText: (p, t) => `After a 30-day glow-up, "${p}" showed up at my door. Title: ${t} #30DayGlowUp`,
       share: 'Result', load: 'Getting ready',

@@ -14,7 +14,7 @@ let pass = 0, fail = 0
 const results = []
 async function t(name, fn) {
   try { const r = await fn(); if (r === false) throw new Error('false'); pass++; results.push(`ok   ${name}${r && r !== true ? '  ' + JSON.stringify(r) : ''}`) }
-  catch (e) { fail++; results.push(`FAIL ${name}  ${e.message.split('\n')[0]}`) }
+  catch (e) { fail++; results.push(`FAIL ${name}  ${e.message.split('\n')[0]}`); console.error(results.at(-1)) }
 }
 const expect = (c, msg) => { if (!c) throw new Error(msg) }
 async function open(browser, opts = {}, keep) {
@@ -47,7 +47,7 @@ const fit = q => q.evaluate(() => {
   }
   return { H, over: over.slice(0, 6) }
 })
-const tapXY = async (p, a, touch) => { const xy = await p.evaluate(a => jmg.itemXY(a), a); if (touch) await p.touchscreen.tap(xy.x, xy.y); else await p.mouse.click(xy.x, xy.y); return xy }
+const tapXY = async (p, a, touch) => { await p.evaluate(a => jmg.offer(a), a); const xy = await p.evaluate(a => jmg.itemXY(a), a); if (touch) await p.touchscreen.tap(xy.x, xy.y); else await p.mouse.click(xy.x, xy.y); return xy }
 // bot の計画どおりに、本物のタップで30日を進める
 // 30日後のドアは自分で開ける（2026-11-12）。tap = ノブを2回押す / drag = ノブから左へなぞる / none = 開けない
 async function drag(p, x, y, dx, { touch, release = true, steps = 12 } = {}) {
@@ -305,8 +305,19 @@ await t('「やめたい」: 走って3回目に誘惑が出る（やめると�
   const r = await q.evaluate(() => { const S = Sim.create(D, 90); S.events = []; let ev = null; for (let i = 0; i < 3; i++) { S.hp = 100; S.sore = false; const o = Sim.act(D, S, 'run'); if (o.ev) ev = o.ev } const g0 = S.gap; Sim.choose(D, S, 0); return { ev, g0, gap: S.gap, chain: S.chain } })
   expect(r.ev === 'quit' && r.g0 === 0, JSON.stringify(r)); return r
 })
-await t('毎回違う: 種が違うとおすすめ・できごとが違う', async () => {
-  const r = await q.evaluate(() => { const a = Sim.create(D, 11), b = Sim.create(D, 12); return [a.deals.join() !== b.deals.join(), a.events.join() !== b.events.join()] })
+await t('2択: 30日とも、左にしんどい方・右に楽な方が1枚ずつ・前の日と同じ組は出ない・体力が低い日は早寝', async () => {
+  const r = await q.evaluate(() => { let bad = 0, same = 0, low = 0, lowBad = 0, n = 0; for (let k = 0; k < 60; k++) { const S = Sim.create(D, (k * 2654435761 + 99) >>> 0); let old = ''; while (!S.done) { if (S.choice) { Sim.choose(D, S, 1); continue } const [a, b] = S.offer; n++; if (S.offer.length !== 2 || !Sim.isSlow(a) || Sim.isSlow(b)) bad++; if (S.offer.join() === old) same++; old = S.offer.join(); if (S.hp < 35) { low++; if (a !== 'sleep') lowBad++ } if (!Sim.act(D, S, (k + S.day) % 3 ? a : b).ok) bad++ } } return { n, bad, same, low, lowBad } })
+  expect(!r.bad && !r.same && !r.lowBad && r.low > 0, JSON.stringify(r)); return r
+})
+await t('2択: 画面に出るのは2つだけ。押すと選んだ方が残り、次の日の2枚に替わる', async () => {
+  await q.evaluate(() => { jmg.setSeed(4401); jmg.fast(1); jmg.start(); jmg.raw().events = [] }); await q.waitForTimeout(400)
+  const vis = () => q.evaluate(() => [...document.querySelectorAll('#floor .obj')].filter(e => e.getBoundingClientRect().height > 0).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left).map(e => ({ a: e.dataset.a, un: e.classList.contains('unpicked'), h: Math.round(e.getBoundingClientRect().height) })))
+  const a = await vis(), off = await q.evaluate(() => jmg.offers()); await tapXY(q, off[0]); await q.waitForTimeout(120); const b = await vis(); await q.screenshot({ path: ROOT + '/shots/v-two-picked.png' })
+  await q.waitForFunction(() => !jmg.busy()); await q.waitForTimeout(400); const c = await vis(), off2 = await q.evaluate(() => jmg.offers()); await q.evaluate(() => jmg.fast(0.02))
+  expect(a.length === 2 && a.map(x => x.a).join() === off.join() && a.every(x => x.h > 100) && b.map(x => x.a).join() === off.join() && !b[0].un && b[1].un && c.length === 2 && c.map(x => x.a).join() === off2.join() && !c.some(x => x.un), JSON.stringify({ a, b, c, off, off2 }))
+})
+await t('毎回違う: 種が違うと2択・できごとが違う', async () => {
+  const r = await q.evaluate(() => { const a = Sim.create(D, 11), b = Sim.create(D, 12); const of = s => { const S = Sim.create(D, s), o = []; while (!S.done) { if (S.choice) { Sim.choose(D, S, 1); continue } o.push(S.offer.join('/')); if (!Sim.act(D, S, S.offer[0]).ok) break } return o.join() }; return [of(11) !== of(12), a.events.join() !== b.events.join()] })
   expect(r[0] && r[1], r)
 })
 await t('同じ種・同じ操作なら同じ結果（運でなく選び方で決まる）', async () => {
@@ -341,7 +352,7 @@ await t('毎日なにか起きる: しんどい方は場面の絵（筋肉痛・
   const r = await q.evaluate(() => ({ sc: window.__scenes, likes: window.__likesFx, imgs: [...new Set(window.__scenes)].length }))
   const ok = await q.evaluate(async list => { const bad = []; for (const n of list) { const i = new Image(); i.src = `img/${n}.webp?v=1`; try { await i.decode(); if (i.naturalWidth < 300) bad.push(n) } catch (e) { bad.push(n) } } return bad }, ['sc_run', 'sc_cook0', 'sc_cook1', 'sc_study', 'sc_work', 'sc_sleep', 'sc_skin', 'date_ok', 'date_great', 'date_fail', 'date_pale'])
   const want = ['me_run', 'sc_run', 'sc_study', 'sc_work', 'sc_sleep', 'sc_cook1', 'sc_skin']
-  expect(want.every(w => r.sc.includes(w)) && r.sc.includes('sc_cook0') && r.likes === 2 && !ok.length, JSON.stringify({ r, ok })); return r.sc.join(',')
+  expect(want.every(w => r.sc.includes(w)) && r.sc.includes('sc_cook0') && r.likes === 3 && !ok.length, JSON.stringify({ r, ok })); return r.sc.join(',')
 })
 await t('メイク・加工自撮りの瞬間を撮る（通知・ハート・キラキラ）', async () => {
   await q.evaluate(() => { jmg.fast(1); const S = jmg.raw(); S.events = []; S.choice = null }); await tapXY(q, 'selfie'); await q.waitForTimeout(500)
@@ -392,7 +403,7 @@ await q.close()
   await t('最初の説明: 物を押すと、すぐ次の説明へ（待たない）', async () => {
     await z.evaluate(() => localStorage.removeItem('jmg_tut')); await z.reload(); await z.waitForFunction(() => window.__jmgReady)
     await z.click('#bStart'); await z.waitForTimeout(500)
-    const xy = await z.evaluate(() => jmg.itemXY('study')); await z.mouse.click(xy.x, xy.y); await z.waitForTimeout(100)
+    const xy = await z.evaluate(() => { jmg.offer('study'); return jmg.itemXY('study') }); await z.mouse.click(xy.x, xy.y); await z.waitForTimeout(100)
     const r = await z.evaluate(() => ({ step: jmg.tutStep(), log: jmg.tipLog(), tip: document.querySelector('#tip').textContent }))
     expect(r.step === 1 && r.log.length === 1 && r.log[0] < 900, JSON.stringify(r)); return r
   })
@@ -606,9 +617,9 @@ for (const [w, h, name] of [[360, 640, 'small'], [390, 844, 'phone'], [430, 932,
     const b = await s.evaluate(() => { const r = document.querySelector('#chBack').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } }); await s.touchscreen.tap(b.x, b.y); await s.waitForSelector('#chat', { state: 'hidden' }) }
   for (const [v, rr] of Object.entries(views)) await t(`一画面に収まる ${name} ${w}x${h} ${v}`, async () => { expect(!rr.over.length, JSON.stringify(rr)) })
   await t(`${name}: はみ出し・エラーなし（${r.who}）`, async () => { const o = await overflow(s); expect(o.sw <= o.W && !o.bad.length && !s.errs.length, JSON.stringify(o) + s.errs.join('|')) })
-  await t(`${name}: 部屋の9つの物が全部画面内で押せる大きさ`, async () => {
+  await t(`${name}: 9つの行動のどれが2択に出ても画面内で押せる大きさ`, async () => {
     await s.tap('#bookClose'); await s.tap('#bAgain'); await s.waitForTimeout(150)
-    const r2 = await s.evaluate(() => Object.keys(D.ACT).map(a => { const x = jmg.itemXY(a); return [a, Math.round(x.w), Math.round(x.h), x.y < innerHeight && x.y > 0] }))
+    const r2 = await s.evaluate(() => Object.keys(D.ACT).map(a => { jmg.offer(a); const x = jmg.itemXY(a); return [a, Math.round(x.w), Math.round(x.h), x.y < innerHeight && x.y > 0] }))
     expect(r2.length === 9 && r2.every(([, w, h, inn]) => w >= 44 && h >= 44 && inn), JSON.stringify(r2))
   })
   await s.close()

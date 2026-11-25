@@ -27,7 +27,7 @@ body::before{content:"";position:absolute;inset:0;background:linear-gradient(90d
 <div class="c" style="left:36px;top:160px;transform:rotate(-6deg)"><i>美容ばかり</i><img src="img/p_tomo.webp"><b>クーポンの女友達</b></div>
 <div class="c" style="left:262px;top:100px;transform:rotate(2deg);z-index:2"><i>加工ばかり</i><img src="img/p_kakou.webp"><b>画面の向こうの人</b></div>
 <div class="c" style="left:500px;top:150px;transform:rotate(7deg);z-index:3"><i>しんどい方を続けた</i><img src="img/p_kujo.webp"><b>ハイスペすぎる人</b></div>
-<div class="t"><h1>自分磨き<br><em>30</em>日<span>女の子編</span></h1><p>恋人は、積み上げた分だけ</p><small>メイクはすぐ効く。寝ると落ちる<br>ランニングは何も変わらない<br>ドアの前に来るのは全17人</small></div>
+<div class="t"><h1>自分磨き<br><em>30</em>日<span>女の子編</span></h1><p>恋人は、積み上げた分だけ</p><small>メイクはすぐ効く。寝ると落ちる<br>ランニングは何も変わらない<br>ドアの前に来るのは全18人</small></div>
 </body></html>`)
 await p.waitForLoadState('networkidle'); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(300)
 await p.screenshot({ path: ROOT + '/og.png' })
